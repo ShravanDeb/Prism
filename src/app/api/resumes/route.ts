@@ -22,8 +22,8 @@ export async function GET() {
   ]);
 
   const resumes = [
-    ...masterResumes.map((r) => ({ ...r, _type: "master" as const })),
-    ...tailoredResumes.map((r) => ({ ...r, _type: "tailored" as const })),
+    ...masterResumes.map((r: any) => ({ ...r, _type: "master" as const })),
+    ...tailoredResumes.map((r: any) => ({ ...r, _type: "tailored" as const })),
   ];
 
   return NextResponse.json({ resumes });

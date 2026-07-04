@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { prisma } from "@/lib/prisma";
+import { syncUser } from "@/lib/sync-user";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  await syncUser(user);
 
   let resume = await prisma.masterResume.findFirst({
     where: { id, userId: user.id },
@@ -40,6 +42,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const supabase = await createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  await syncUser(user);
 
   const body = await request.json();
 
@@ -63,6 +66,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const supabase = await createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  await syncUser(user);
 
   try {
     await prisma.masterResume.deleteMany({ where: { id, userId: user.id } });

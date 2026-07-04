@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { prisma } from "@/lib/prisma";
+import { syncUser } from "@/lib/sync-user";
 
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  await syncUser(user);
 
   const body = await request.json();
   const { resumeId, content, language } = body;
@@ -25,6 +27,7 @@ export async function GET(request: Request) {
   const supabase = await createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  await syncUser(user);
 
   const { searchParams } = new URL(request.url);
   const resumeId = searchParams.get("resumeId");

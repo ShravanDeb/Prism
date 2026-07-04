@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { prisma } from "@/lib/prisma";
+import { syncUser } from "@/lib/sync-user";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  await syncUser(user);
 
   const body = await request.json();
   const { jobDescription, style = "full" } = body;

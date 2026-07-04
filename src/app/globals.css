@@ -1,0 +1,359 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Container query variants are built-in: @sm @md @lg @xl @2xl @3xl @4xl @5xl */
+
+@theme inline {
+  --shadow-sw-xs: 1px 1px 0px 0px #000000;
+  --shadow-sw-sm: 2px 2px 0px 0px #000000;
+  --shadow-sw-default: 4px 4px 0px 0px #000000;
+  --shadow-sw-card: 6px 6px 0px 0px #000000;
+  --shadow-sw-lg: 8px 8px 0px 0px #000000;
+  --shadow-sw-xl: 12px 12px 0px 0px #000000;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-canvas: var(--canvas);
+  --color-ink: var(--ink);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-paper-tint: var(--paper-tint);
+  --color-steel-grey: var(--steel-grey);
+  --color-ink-soft: var(--ink-soft);
+  --color-border-hover: var(--border-hover);
+  --color-canvas-alt: var(--canvas-alt);
+
+  --font-sans: var(--font-sans, 'Source Sans 3', system-ui, sans-serif);
+  --font-mono: var(--font-mono, 'JetBrains Mono', 'Fira Code', monospace);
+  --font-display: var(--font-display, 'Petrona', 'Georgia', serif);
+  --font-label: var(--font-label, 'Azeret Mono', 'JetBrains Mono', monospace);
+  --font-serif: var(--font-display, 'Petrona', 'Georgia', serif);
+}
+
+/* ─── Light (default) — Swiss/Brutalist Palette ─── */
+:root,
+.light {
+  --canvas: #f0f0e8;
+  --ink: #000000;
+  --success: #15803d;
+  --warning: #f97316;
+  --paper-tint: oklch(96% 0.005 264);
+  --steel-grey: oklch(64% 0.012 264);
+  --ink-soft: oklch(38% 0.018 264);
+  --border-hover: #d6d3d1;
+  --canvas-alt: #ffffff;
+
+  --background: #f0f0e8;
+  --foreground: #000000;
+  --card: #f0f0e8;
+  --card-foreground: #000000;
+  --popover: #f0f0e8;
+  --popover-foreground: #000000;
+  --primary: #1d4ed8;
+  --primary-foreground: #ffffff;
+  --secondary: #e5e5e0;
+  --secondary-foreground: #000000;
+  --muted: #e5e5e0;
+  --muted-foreground: #6b7280;
+  --accent: #e5e5e0;
+  --accent-foreground: #000000;
+  --destructive: #dc2626;
+  --border: #000000;
+  --input: #f0f0e8;
+  --ring: #1d4ed8;
+  --chart-1: #1d4ed8;
+  --chart-2: #15803d;
+  --chart-3: #f97316;
+  --chart-4: #dc2626;
+  --chart-5: #000000;
+
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.08);
+  --shadow-xl: 0 8px 32px rgba(0,0,0,0.1);
+}
+
+/* ─── PRISM App (Dashboard) Design Tokens ─── */
+:root {
+  --prism-bg: oklch(11% 0.025 270);
+  --prism-bg-alt: oklch(14% 0.03 270);
+  --prism-surface: oklch(18% 0.04 270);
+  --prism-surface-2: oklch(22% 0.045 270);
+  --prism-fg: oklch(93% 0.01 270);
+  --prism-fg-secondary: oklch(68% 0.02 270);
+  --prism-muted: oklch(45% 0.025 270);
+  --prism-border: oklch(25% 0.04 270);
+  --prism-accent: oklch(64% 0.22 280);
+  --prism-accent-dim: oklch(50% 0.18 280);
+  --prism-accent-2: oklch(58% 0.18 310);
+  --prism-accent-2-dim: oklch(45% 0.15 310);
+  --prism-success: oklch(62% 0.15 150);
+  --prism-warning: oklch(68% 0.14 85);
+  --prism-danger: oklch(55% 0.18 25);
+  --prism-radius-sm: 8px;
+  --prism-radius-md: 12px;
+  --prism-radius-lg: 16px;
+  --prism-radius-xl: 20px;
+  --prism-shadow-md: 0 4px 16px rgba(0,0,0,0.35);
+  --prism-shadow-lg: 0 8px 32px rgba(0,0,0,0.45);
+  --prism-sidebar-w: 260px;
+  --prism-sidebar-collapsed-w: 72px;
+  --prism-header-h: 64px;
+}
+
+/* ─── Dark ─── */
+.dark {
+  --canvas: #0c0c0d;
+  --ink: #fafafa;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --paper-tint: #18181b;
+  --steel-grey: #a1a1aa;
+  --ink-soft: #a1a1aa;
+  --border-hover: #3f3f46;
+  --canvas-alt: #18181b;
+
+  --background: #0c0c0d;
+  --foreground: #fafafa;
+  --card: #18181b;
+  --card-foreground: #fafafa;
+  --popover: #18181b;
+  --popover-foreground: #fafafa;
+  --primary: #7c3aed;
+  --primary-foreground: #ffffff;
+  --secondary: #1f1f23;
+  --secondary-foreground: #fafafa;
+  --muted: #1f1f23;
+  --muted-foreground: #71717a;
+  --accent: #1f1f23;
+  --accent-foreground: #fafafa;
+  --destructive: #f43f5e;
+  --border: #27272a;
+  --input: #0c0c0d;
+  --ring: #7c3aed;
+  --chart-1: #7c3aed;
+  --chart-2: #059669;
+  --chart-3: #0284c7;
+  --chart-4: #f43f5e;
+  --chart-5: #a78bfa;
+  --sidebar: #18181b;
+  --sidebar-foreground: #fafafa;
+  --sidebar-primary: #7c3aed;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1f1f23;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #27272a;
+  --sidebar-ring: #7c3aed;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.3);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.4);
+  --shadow-xl: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+* { @apply border-border outline-ring/50; }
+
+@utility border-ink {
+  border-color: #000;
+  .dark & { border-color: var(--border); }
+}
+
+body {
+  @apply bg-background text-foreground antialiased;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+::selection { @apply bg-primary/20 text-ink; }
+
+/* ─── Two-row stripe background ─── */
+.bg-stripes {
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 24px,
+    color-mix(in srgb, var(--primary) 5%, transparent) 24px,
+    color-mix(in srgb, var(--primary) 5%, transparent) 25px,
+    transparent 25px,
+    transparent 48px,
+    color-mix(in srgb, var(--primary) 3%, transparent) 48px,
+    color-mix(in srgb, var(--primary) 3%, transparent) 49px,
+    transparent 49px,
+    transparent 72px
+  );
+  background-size: 100% 72px;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-sm); }
+::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+/* ─── PRISM App Glassmorphism ─── */
+.prism-glass {
+  background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.prism-glass:hover {
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+  border-color: rgba(129, 140, 248, 0.15);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 0 40px rgba(129, 140, 248, 0.05);
+  transform: translateY(-2px);
+}
+
+.prism-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.prism-badge.complete { background: rgba(74, 222, 128, 0.12); color: oklch(62% 0.15 150); }
+.prism-badge.processing { background: rgba(129, 140, 248, 0.12); color: oklch(64% 0.22 280); }
+.prism-badge.pending { background: rgba(250, 204, 21, 0.12); color: oklch(68% 0.14 85); }
+.prism-badge.error { background: rgba(248, 113, 113, 0.12); color: oklch(55% 0.18 25); }
+.prism-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.prism-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.prism-btn-primary {
+  background: linear-gradient(135deg, oklch(64% 0.22 280), oklch(58% 0.18 310));
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(129, 140, 248, 0.25);
+}
+.prism-btn-primary:hover {
+  box-shadow: 0 4px 20px rgba(129, 140, 248, 0.35);
+  transform: translateY(-1px);
+}
+.prism-btn-secondary {
+  background: rgba(255,255,255,0.06);
+  color: oklch(68% 0.02 270);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.prism-btn-secondary:hover { background: rgba(255,255,255,0.1); color: oklch(93% 0.01 270); }
+.prism-btn-sm { padding: 5px 12px; font-size: 12px; }
+
+.prism-input {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: oklch(93% 0.01 270);
+  font-size: 14px;
+  transition: all 0.2s;
+  outline: none;
+}
+.prism-input:focus {
+  border-color: oklch(64% 0.22 280);
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.1);
+}
+.prism-input::placeholder { color: oklch(45% 0.025 270); }
+
+.section-title {
+  font-family: var(--font-display, system-ui);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: oklch(93% 0.01 270);
+}
+.section-action {
+  font-size: 13px;
+  font-weight: 500;
+  color: oklch(64% 0.22 280);
+  padding: 6px 14px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+.section-action:hover { background: rgba(129, 140, 248, 0.1); }
+
+.table-header {
+  text-align: left;
+  padding: 10px 16px;
+  color: oklch(45% 0.025 270);
+  font-weight: 500;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.table-cell {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: oklch(68% 0.02 270);
+}
+.table-cell.cell-accent { color: oklch(93% 0.01 270); font-weight: 500; }
+.table-row:hover td { background: rgba(255,255,255,0.02); }
+
+.activity-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+}
+.activity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+.activity-text {
+  font-size: 13px;
+  color: oklch(68% 0.02 270);
+  line-height: 1.4;
+}
+.activity-text strong { color: oklch(93% 0.01 270); font-weight: 500; }
+.activity-time { font-size: 11px; color: oklch(45% 0.025 270); margin-top: 2px; }

@@ -1,0 +1,243 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  masterResumes   MasterResume[]
+  tailoredResumes TailoredResume[]
+  jobDescriptions JobDescription[]
+  trackerCards    TrackerCard[]
+  settings        Settings?
+}
+
+model MasterResume {
+  id               String   @id @default(cuid())
+  userId           String
+  title            String   @default("Master Resume")
+  templateId       String   @default("swiss-1col")
+  pageSize         String   @default("A4")
+  accentColor      String   @default("#7c3aed")
+  status           String   @default("pending")
+  uploadedFileUrl  String?
+  uploadedFileName String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sections  ResumeSection[]
+  coverLetters  CoverLetter[]
+  outreachMessages OutreachMessage[]
+  enrichmentSessions EnrichmentSession[]
+  tailoredResumes TailoredResume[]
+
+  @@index([userId])
+}
+
+model TailoredResume {
+  id                      String   @id @default(cuid())
+  userId                  String
+  masterResumeId          String
+  title                   String
+  templateId              String   @default("swiss-1col")
+  pageSize                String   @default("A4")
+  accentColor             String   @default("#7c3aed")
+  status                  String   @default("ready")
+  sourceJobDescriptionId  String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  masterResume  MasterResume     @relation(fields: [masterResumeId], references: [id], onDelete: Cascade)
+  jobDescription JobDescription? @relation(fields: [sourceJobDescriptionId], references: [id])
+  sections      ResumeSection[]
+  trackerCards  TrackerCard[]
+
+  @@index([userId])
+  @@index([masterResumeId])
+}
+
+model ResumeSection {
+  id        String  @id @default(cuid())
+  masterResumeId String?
+  tailoredResumeId String?
+  type      String
+  order     Int     @default(0)
+  visible   Boolean @default(true)
+  name      String  @default("")
+
+  masterResume  MasterResume?  @relation(fields: [masterResumeId], references: [id], onDelete: Cascade)
+  tailoredResume TailoredResume? @relation(fields: [tailoredResumeId], references: [id], onDelete: Cascade)
+
+  experienceEntries ExperienceEntry[]
+  educationEntries  EducationEntry[]
+  projectEntries    ProjectEntry[]
+  customEntries     CustomEntry[]
+}
+
+model ExperienceEntry {
+  id        String   @id @default(cuid())
+  sectionId String
+  title     String
+  company   String
+  location  String?
+  startDate String?
+  endDate   String?
+  current   Boolean  @default(false)
+  bullets   String[]
+  order     Int      @default(0)
+
+  section ResumeSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+}
+
+model EducationEntry {
+  id          String   @id @default(cuid())
+  sectionId   String
+  institution String
+  degree      String
+  field       String?
+  startDate   String?
+  endDate     String?
+  gpa         String?
+  bullets     String[]
+  order       Int      @default(0)
+
+  section ResumeSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+}
+
+model ProjectEntry {
+  id          String   @id @default(cuid())
+  sectionId   String
+  name        String
+  description String?
+  url         String?
+  startDate   String?
+  endDate     String?
+  bullets     String[]
+  order       Int      @default(0)
+
+  section ResumeSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+}
+
+model CustomEntry {
+  id        String   @id @default(cuid())
+  sectionId String
+  content   String
+  bullets   String[]
+  order     Int      @default(0)
+
+  section ResumeSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+}
+
+model JobDescription {
+  id               String   @id @default(cuid())
+  userId           String
+  rawText          String
+  parsedKeywords   String[]
+  linkedResumeId   String?
+  createdAt        DateTime @default(now())
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tailoredResumes TailoredResume[]
+  trackerCards    TrackerCard[]
+
+  @@index([userId])
+}
+
+model TrackerCard {
+  id               String   @id @default(cuid())
+  userId           String
+  jobDescriptionId String?
+  resumeId         String?
+  status           String   @default("Saved")
+  notes            String?
+  company          String?
+  jobTitle         String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobDescription JobDescription? @relation(fields: [jobDescriptionId], references: [id])
+  tailoredResume TailoredResume? @relation(fields: [resumeId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+}
+
+model CoverLetter {
+  id         String   @id @default(cuid())
+  resumeId   String
+  content    String
+  language   String   @default("en")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  resume MasterResume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@index([resumeId])
+}
+
+model OutreachMessage {
+  id        String   @id @default(cuid())
+  resumeId  String
+  content   String
+  language  String   @default("en")
+  type      String   @default("linkedin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  resume MasterResume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@index([resumeId])
+}
+
+model Settings {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  llmProvider             String   @default("openai")
+  model                   String   @default("gpt-4o")
+  apiBaseUrl              String?
+  apiKeyEncrypted         String?
+  reasoningEffort         String   @default("auto")
+  uiLanguage              String   @default("en")
+  contentLanguage         String   @default("en")
+  defaultImprovementStyle String   @default("nudge")
+  coverLetterEnabled      Boolean  @default(true)
+  outreachEnabled         Boolean  @default(true)
+  customPrompts           Json?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model EnrichmentSession {
+  id        String   @id @default(cuid())
+  resumeId  String
+  step      String   @default("analyzing")
+  questions Json?
+  results   Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  resume MasterResume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@index([resumeId])
+}

@@ -429,7 +429,7 @@ export default function LandingPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                 {[
-                  { title: "Connect", links: [{ label: "Discord", href: "https://discord.gg/resume-matcher" }, { label: "X", href: "https://twitter.com/resume_matcher" }] },
+                  { title: "Connect", links: [{ label: "LinkedIn", href: "https://www.linkedin.com/in/shravan-kumar-deb-577b1037a" }, { label: "Instagram", href: "https://www.instagram.com/shravnnn.d" }] },
                 ].map((group) => (
                   <div key={group.title}>
                     <h3 className="font-label text-xs uppercase tracking-widest text-ink mb-4">{group.title}</h3>

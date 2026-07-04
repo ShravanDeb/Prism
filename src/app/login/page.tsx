@@ -55,7 +55,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleOAuth = async (provider: "google" | "github") => {
+  const handleOAuth = async (provider: "google" | "github" | "linkedin_oidc") => {
     setLoading(true);
     await supabase.auth.signInWithOAuth({
       provider,

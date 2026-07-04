@@ -39,6 +39,7 @@ export default function ResumeWizardPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [answers, setAnswers] = useState<Record<string, string>>(INITIAL_ANSWERS);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const currentAnswer = answers[String(currentStep)] ?? "";
   const totalSteps = STEPS.length;
@@ -66,6 +67,7 @@ export default function ResumeWizardPage() {
 
   const handleFinalize = useCallback(async () => {
     setSubmitting(true);
+    setError("");
     try {
       const raw = answers["1"]?.trim() || "";
       const name = raw.includes(",") ? raw.split(",")[0].trim() : raw || "Untitled";
@@ -74,9 +76,13 @@ export default function ResumeWizardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "master", title: name, answers }),
       });
-      if (!res.ok) throw new Error("Failed to save resume");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to save resume");
+      }
       router.push("/dashboard");
-    } catch {
+    } catch (e: any) {
+      setError(e?.message || "Something went wrong. Try again.");
       setSubmitting(false);
     }
   }, [answers, router]);
@@ -136,12 +142,15 @@ export default function ResumeWizardPage() {
             <button
               onClick={handleBack}
               disabled={currentStep === 1}
-              className="border-2 border-ink px-6 py-2 font-mono text-sm text-ink transition-colors hover:bg-ink hover:text-canvas disabled:opacity-30 disabled:pointer-events-none"
+              className="border-2 border-ink px-6 py-2 font-mono text-sm text-ink-soft transition-colors hover:bg-ink hover:text-canvas disabled:opacity-30 disabled:pointer-events-none"
             >
               Back
             </button>
 
             <div className="flex items-center gap-4">
+              {error && (
+                <span className="text-xs font-mono text-[#dc2626]">{error}</span>
+              )}
               {currentStep < totalSteps && (
                 <button
                   onClick={handleSkip}

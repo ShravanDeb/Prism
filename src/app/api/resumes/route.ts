@@ -44,6 +44,32 @@ export async function POST(request: Request) {
         status: "ready",
       },
     });
+
+    const sectionMap: Record<string, string> = {
+      "1": "contact",
+      "2": "summary",
+      "3": "experience",
+      "4": "education",
+      "5": "skills",
+      "6": "projects",
+    };
+
+    if (body.answers) {
+      const sections = Object.entries(body.answers)
+        .filter(([_, val]) => typeof val === "string" && (val as string).trim())
+        .map(([key, val], i) => ({
+          masterResumeId: resume.id,
+          type: sectionMap[key] || `custom-${key}`,
+          name: sectionMap[key] || `Section ${key}`,
+          order: i,
+          visible: true,
+        }));
+
+      if (sections.length > 0) {
+        await prisma.resumeSection.createMany({ data: sections });
+      }
+    }
+
     return NextResponse.json(resume);
   }
 

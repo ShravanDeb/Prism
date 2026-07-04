@@ -30,61 +30,39 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: ERRORS.unauthorized }, { status: 401 });
+  try {
+    const supabase = await createServerSupabase();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: ERRORS.unauthorized }, { status: 401 });
 
-  const body = await request.json();
+    const body = await request.json();
 
-  if (body.type === "master") {
-    const resume = await prisma.masterResume.create({
-      data: {
-        userId: user.id,
-        title: body.title || "Master Resume",
-        status: "ready",
-      },
-    });
-
-    const sectionMap: Record<string, string> = {
-      "1": "contact",
-      "2": "summary",
-      "3": "experience",
-      "4": "education",
-      "5": "skills",
-      "6": "projects",
-    };
-
-    if (body.answers) {
-      const sections = Object.entries(body.answers)
-        .filter(([_, val]) => typeof val === "string" && (val as string).trim())
-        .map(([key, val], i) => ({
-          masterResumeId: resume.id,
-          type: sectionMap[key] || `custom-${key}`,
-          name: sectionMap[key] || `Section ${key}`,
-          order: i,
-          visible: true,
-        }));
-
-      if (sections.length > 0) {
-        await prisma.resumeSection.createMany({ data: sections });
-      }
+    if (body.type === "master") {
+      const resume = await prisma.masterResume.create({
+        data: {
+          userId: user.id,
+          title: body.title || "Master Resume",
+          status: "ready",
+        },
+      });
+      return NextResponse.json(resume);
     }
 
-    return NextResponse.json(resume);
-  }
+    if (body.type === "tailored") {
+      const resume = await prisma.tailoredResume.create({
+        data: {
+          userId: user.id,
+          masterResumeId: body.masterResumeId,
+          title: body.title || "Tailored Resume",
+          sourceJobDescriptionId: body.jobDescriptionId || null,
+          status: "ready",
+        },
+      });
+      return NextResponse.json(resume);
+    }
 
-  if (body.type === "tailored") {
-    const resume = await prisma.tailoredResume.create({
-      data: {
-        userId: user.id,
-        masterResumeId: body.masterResumeId,
-        title: body.title || "Tailored Resume",
-        sourceJobDescriptionId: body.jobDescriptionId || null,
-        status: "ready",
-      },
-    });
-    return NextResponse.json(resume);
+    return NextResponse.json({ error: ERRORS.invalidType }, { status: 400 });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
   }
-
-  return NextResponse.json({ error: ERRORS.invalidType }, { status: 400 });
 }

@@ -326,7 +326,7 @@ export default function BuilderPage() {
 
   if (loading || !resume) {
     return (
-      <div className="min-h-screen bg-canvas text-ink font-sans">
+      <div className="min-h-screen bg-canvas text-ink font-sans pt-16">
         <NavBar />
         <div className="pt-24 flex items-center justify-center min-h-[60vh]">
           <div className="flex items-center gap-3 text-ink-soft font-mono text-sm">

@@ -332,7 +332,7 @@ export default function ResumeViewerPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-canvas text-ink font-sans">
+      <div className="min-h-screen bg-canvas text-ink font-sans pt-16">
         <NavBar />
         <div className="pt-24 flex items-center justify-center">
           <div className="flex items-center gap-3 text-ink-soft font-mono text-sm">
@@ -346,7 +346,7 @@ export default function ResumeViewerPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-canvas text-ink font-sans">
+      <div className="min-h-screen bg-canvas text-ink font-sans pt-16">
         <NavBar />
         <div className="pt-24 max-w-xl mx-auto px-4">
           <div className="border-2 border-ink bg-canvas-alt shadow-[8px_8px_0_rgba(0,0,0,0.25)] p-8 text-center">
@@ -377,7 +377,7 @@ export default function ResumeViewerPage() {
   const isTailored = resume._type === "tailored";
 
   return (
-    <div className="min-h-screen bg-canvas text-ink font-sans">
+    <div className="min-h-screen bg-canvas text-ink font-sans pt-16">
       <NavBar />
 
       {/* Header */}

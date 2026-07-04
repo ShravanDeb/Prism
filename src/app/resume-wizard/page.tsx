@@ -101,7 +101,7 @@ export default function ResumeWizardPage() {
   }, [answers]);
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="min-h-screen bg-canvas pt-16">
       <NavBar />
 
       <main className="mx-auto grid min-h-[calc(100vh-64px)] max-w-7xl grid-cols-1 md:grid-cols-2">

@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Zap, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { LogoIcon } from "@/components/LogoIcon";
 import { createClient } from "@/lib/supabase-client";
 
 export default function LoginPage() {
@@ -73,7 +74,7 @@ export default function LoginPage() {
         <div className="border-2 border-ink bg-canvas-alt shadow-[8px_8px_0px_0px_rgba(0,0,0,0.25)] p-8">
           <div className="flex items-center justify-center mb-6">
             <div className="bg-canvas text-ink px-4 py-3 border-2 border-ink shadow-[4px_4px_0_rgba(0,0,0,0.25)] flex items-center gap-2">
-              <Zap size={24} />
+              <LogoIcon size={24} />
               <span className="text-lg uppercase font-label font-semibold tracking-[0.08em]">PRISM</span>
             </div>
           </div>

@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Zap, ArrowRight, Star, Sparkles, X, Sun, Moon, CheckCircle } from "lucide-react";
+import { ArrowRight, Star, Sparkles, X, Sun, Moon, CheckCircle } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
+import { LogoIcon } from "@/components/LogoIcon";
 
-const GITHUB_URL = "https://github.com/ShravanDeb/PRISM";
+const GITHUB_URL = "https://github.com/ShravanDeb/Prism";
 const STAR_COUNT = "0";
 
 const navLinks = [
@@ -40,7 +41,7 @@ function HeroGraphic() {
         <div className="p-6 space-y-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 border-2 border-[#7c3aed] bg-[#7c3aed]/10 flex items-center justify-center">
-              <Zap size={18} className="text-[#7c3aed]" />
+              <LogoIcon size={18} className="text-[#7c3aed]" />
             </div>
             <div>
               <div className="text-sm font-semibold text-ink">Senior Frontend Engineer</div>
@@ -111,7 +112,7 @@ export default function LandingPage() {
           <div className="flex items-center justify-between gap-4">
             <Link href="/" className="flex items-center group">
               <div className="bg-canvas-alt text-ink px-3 py-2 border-2 border-ink shadow-[3px_3px_0_rgba(0,0,0,0.25)] group-hover:shadow-[4px_4px_0_rgba(0,0,0,0.25)] transition-all flex items-center gap-2">
-                <Zap size={22} />
+                <LogoIcon size={22} />
                 <span className="text-base md:text-lg uppercase font-label font-semibold tracking-[0.08em] hidden md:block">PRISM</span>
               </div>
             </Link>
@@ -161,7 +162,7 @@ export default function LandingPage() {
             <div className="flex items-center justify-between px-5 py-4 border-b-2 border-ink">
               <Link href="/" className="flex items-center" onClick={() => setMobileOpen(false)}>
                   <div className="bg-canvas-alt text-ink px-3 py-2 border-2 border-ink shadow-[3px_3px_0_rgba(0,0,0,0.25)] flex items-center gap-2">
-                    <Zap size={20} />
+                    <LogoIcon size={20} />
                     <span className="text-base uppercase font-label font-semibold tracking-[0.08em]">PRISM</span>
                 </div>
               </Link>
@@ -335,7 +336,7 @@ export default function LandingPage() {
         <section className="border-b-2 border-ink">
           <div className="max-w-6xl mx-auto px-4 md:px-8 py-20 md:py-24 text-center">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 border-2 border-ink bg-canvas-alt text-xs font-label uppercase tracking-wider text-ink-soft shadow-[3px_3px_0_rgba(0,0,0,0.25)] mb-8">
-              <Zap size={14} className="text-[#7c3aed]" />
+              <LogoIcon size={14} className="text-[#7c3aed]" />
               Open Source
             </div>
             <h2 className="text-3xl md:text-5xl lg:text-6xl text-ink leading-tight tracking-tight font-display mb-6">
@@ -418,7 +419,7 @@ export default function LandingPage() {
               <div>
                 <Link href="/" className="inline-flex items-center group">
                   <div className="bg-canvas-alt text-ink px-4 py-3 border-2 border-ink shadow-[4px_4px_0_rgba(0,0,0,0.25)] group-hover:shadow-[6px_6px_0_rgba(0,0,0,0.25)] transition-all flex items-center gap-2">
-                    <Zap size={22} />
+                    <LogoIcon size={22} />
                     <span className="text-lg md:text-xl uppercase font-label font-semibold tracking-[0.08em]">PRISM</span>
                   </div>
                 </Link>

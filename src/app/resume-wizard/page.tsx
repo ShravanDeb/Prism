@@ -80,7 +80,8 @@ export default function ResumeWizardPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Failed to save resume");
       }
-      router.push("/dashboard");
+      const resume = await res.json();
+      router.push(`/builder?id=${resume.id}`);
     } catch (e: any) {
       setError(e?.message || "Something went wrong. Try again.");
       setSubmitting(false);

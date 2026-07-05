@@ -2,8 +2,15 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Sparkles, SaveCheck, RotateCcw, Download, ChevronDown, ChevronRight, EyeOff, Eye, Plus, X, Loader2, CopyCheck, FileText, MessageSquare, Check, ArrowUp, ArrowDown, SendHorizontal } from "lucide-react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import NavBar from "@/components/NavBar";
 import { createClient } from "@/lib/supabase-client";
+import type { Entry, ResumeSection, ResumeData } from "./types";
+import Standard1Col from "./templates/Standard1Col";
+import Standard2Col from "./templates/Standard2Col";
+import Latex from "./templates/Latex";
+import Vivid from "./templates/Vivid";
 
 const TEMPLATES = [
   { id: "swiss-1col", label: "Swiss 1-col" },
@@ -27,46 +34,6 @@ const SECTION_LABELS: Record<string, string> = {
   additional: "Additional",
 };
 
-type Entry = {
-  id: string;
-  order: number;
-  type: string;
-  title?: string;
-  company?: string;
-  location?: string;
-  startDate?: string;
-  endDate?: string;
-  current?: boolean;
-  institution?: string;
-  degree?: string;
-  field?: string;
-  gpa?: string;
-  name?: string;
-  description?: string;
-  url?: string;
-  content?: string;
-  bullets: string[];
-};
-
-type ResumeSection = {
-  id: string;
-  type: string;
-  order: number;
-  visible: boolean;
-  name: string;
-  entries: Entry[];
-};
-
-type ResumeData = {
-  id: string;
-  title: string;
-  templateId: string;
-  pageSize: string;
-  accentColor: string;
-  status: string;
-  sections: ResumeSection[];
-};
-
 export default function BuilderPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -86,10 +53,14 @@ export default function BuilderPage() {
   const [coverLetter, setCoverLetter] = useState("");
   const [outreachMsg, setOutreachMsg] = useState("");
   const [coverSaving, setCoverSaving] = useState(false);
+  const [outreachSaving, setOutreachSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [sectionNameEdits, setSectionNameEdits] = useState<Record<string, string>>({});
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const cleanRef = useRef<string>("");
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleSaveRef = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => {
     const init = async () => {
@@ -100,6 +71,27 @@ export default function BuilderPage() {
       await fetchResume(id);
     };
     init();
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    const loadAttachments = async () => {
+      try {
+        const [clRes, omRes] = await Promise.all([
+          fetch(`/api/cover-letters?resumeId=${id}`),
+          fetch(`/api/outreach?resumeId=${id}`),
+        ]);
+        if (clRes.ok) {
+          const clData = await clRes.json();
+          if (clData.coverLetters?.length > 0) setCoverLetter(clData.coverLetters[0].content);
+        }
+        if (omRes.ok) {
+          const omData = await omRes.json();
+          if (omData.messages?.length > 0) setOutreachMsg(omData.messages[0].content);
+        }
+      } catch {}
+    };
+    loadAttachments();
   }, [id]);
 
   const fetchResume = async (resumeId: string) => {
@@ -118,6 +110,8 @@ export default function BuilderPage() {
           (s.projectEntries || []).forEach((e: any) => entries.push({ ...e, type: "projects", bullets: e.bullets || [] }));
         } else if (s.type === "additional") {
           (s.customEntries || []).forEach((e: any) => entries.push({ ...e, type: "additional", bullets: e.bullets || [] }));
+        } else if (s.type === "summary" || s.type === "personal_info") {
+          (s.customEntries || []).forEach((e: any) => entries.push({ ...e, type: s.type, bullets: e.bullets || [] }));
         }
         entries.sort((a, b) => a.order - b.order);
         return { id: s.id, type: s.type, order: s.order, visible: s.visible, name: s.name, entries };
@@ -146,6 +140,40 @@ export default function BuilderPage() {
   const markDirty = useCallback(() => {
     setDirty(true);
   }, []);
+
+  const showToast = useCallback((message: string, type: "success" | "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  useEffect(() => {
+    if (!dirty || !resume) return;
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      handleSaveRef.current();
+    }, 2000);
+    return () => {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    };
+  }, [dirty, resume]);
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (dirty) {
+        e.preventDefault();
+        e.returnValue = "You have unsaved changes.";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
+
+  useEffect(() => {
+    if (!resume || !dirty) return;
+    try {
+      localStorage.setItem(`resume-builder-backup-${resume.id}`, JSON.stringify(resume));
+    } catch {}
+  }, [resume, dirty]);
 
   const updateResume = useCallback((patch: Partial<ResumeData>) => {
     setResume((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -215,21 +243,83 @@ export default function BuilderPage() {
     if (!resume) return;
     setSaving(true);
     try {
-      const body: any = {
-        templateId: resume.templateId,
-        pageSize: resume.pageSize,
-        accentColor: resume.accentColor,
-        title: resume.title,
-      };
-      await fetch(`/api/resumes/${resume.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      cleanRef.current = JSON.stringify(resume);
-      setDirty(false);
+      const sections = resume.sections.map((s) => ({
+        type: s.type,
+        order: s.order,
+        visible: s.visible,
+        name: s.name,
+        entries: s.entries.map((e) => ({
+          order: e.order,
+          type: e.type,
+          title: e.title,
+          company: e.company,
+          location: e.location,
+          startDate: e.startDate,
+          endDate: e.endDate,
+          current: e.current,
+          institution: e.institution,
+          degree: e.degree,
+          field: e.field,
+          gpa: e.gpa,
+          name: e.name,
+          description: e.description,
+          url: e.url,
+          content: e.content,
+          bullets: e.bullets,
+        })),
+      }));
+      const res = await fetch(`/api/resumes/${resume.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateId: resume.templateId,
+          pageSize: resume.pageSize,
+          accentColor: resume.accentColor,
+          title: resume.title,
+          sections,
+        }),
+      });
+      const data = await res.json();
+      if (data.resume) {
+        const r = data.resume;
+        const normSections: ResumeSection[] = (r.sections || []).map((s: any) => {
+          const entries: Entry[] = [];
+          if (s.type === "experience") {
+            (s.experienceEntries || []).forEach((e: any) => entries.push({ ...e, type: "experience", bullets: e.bullets || [] }));
+          } else if (s.type === "education") {
+            (s.educationEntries || []).forEach((e: any) => entries.push({ ...e, type: "education", bullets: e.bullets || [] }));
+          } else if (s.type === "projects") {
+            (s.projectEntries || []).forEach((e: any) => entries.push({ ...e, type: "projects", bullets: e.bullets || [] }));
+          } else {
+            (s.customEntries || []).forEach((e: any) => entries.push({ ...e, type: s.type, bullets: e.bullets || [] }));
+          }
+          entries.sort((a: Entry, b: Entry) => a.order - b.order);
+          return { id: s.id, type: s.type, order: s.order, visible: s.visible, name: s.name, entries };
+        });
+        normSections.sort((a: ResumeSection, b: ResumeSection) => a.order - b.order);
+        const normalized: ResumeData = {
+          id: r.id,
+          title: r.title || "Untitled",
+          templateId: r.templateId || "swiss-1col",
+          pageSize: r.pageSize || "A4",
+          accentColor: r.accentColor || "#7c3aed",
+          status: r.status,
+          sections: normSections,
+        };
+        setResume(normalized);
+        cleanRef.current = JSON.stringify(normalized);
+        setDirty(false);
+        showToast("Saved", "success");
+      }
     } catch (e) {
       console.error("Save failed", e);
+      showToast("Save failed", "error");
     } finally {
       setSaving(false);
     }
   };
+
+  handleSaveRef.current = handleSave;
 
   const handleReset = () => {
     if (!resume) return;
@@ -240,15 +330,32 @@ export default function BuilderPage() {
     } catch { }
   };
 
-  const handleDownload = () => {
-    window.print();
+  const handleDownload = async () => {
+    const previewEl = document.getElementById("preview-content");
+    if (!previewEl) return;
+    try {
+      const canvas = await html2canvas(previewEl, { scale: 2, backgroundColor: "#ffffff" });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({ format: resume?.pageSize === "Letter" ? "letter" : "a4", unit: "px" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const ratio = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+      const scaledW = canvas.width * ratio;
+      const scaledH = canvas.height * ratio;
+      const offsetX = (pageWidth - scaledW) / 2;
+      const offsetY = (pageHeight - scaledH) / 2;
+      pdf.addImage(imgData, "PNG", offsetX, offsetY, scaledW, scaledH);
+      pdf.save(`${resume?.title || "resume"}.pdf`);
+    } catch (e) {
+      console.error("PDF generation failed", e);
+    }
   };
 
   const handleAiRegenerate = async () => {
     if (!resume) return;
     setGenerating(true);
     try {
-      const res = await fetch(`/api/resumes/${resume.id}/tailor`, {
+      const res = await fetch(`/api/resumes/${resume.id}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sections: aiSections, instruction: aiInstruction }),
@@ -264,8 +371,8 @@ export default function BuilderPage() {
             (s.educationEntries || []).forEach((e: any) => entries.push({ ...e, type: "education", bullets: e.bullets || [] }));
           } else if (s.type === "projects") {
             (s.projectEntries || []).forEach((e: any) => entries.push({ ...e, type: "projects", bullets: e.bullets || [] }));
-          } else if (s.type === "additional") {
-            (s.customEntries || []).forEach((e: any) => entries.push({ ...e, type: "additional", bullets: e.bullets || [] }));
+          } else {
+            (s.customEntries || []).forEach((e: any) => entries.push({ ...e, type: s.type, bullets: e.bullets || [] }));
           }
           entries.sort((a, b) => a.order - b.order);
           return { id: s.id, type: s.type, order: s.order, visible: s.visible, name: s.name, entries };
@@ -291,8 +398,10 @@ export default function BuilderPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resumeId: resume.id, content: coverLetter }),
       });
+      showToast("Cover letter saved", "success");
     } catch (e) {
       console.error("Save cover letter failed", e);
+      showToast("Failed to save cover letter", "error");
     } finally {
       setCoverSaving(false);
     }
@@ -302,17 +411,33 @@ export default function BuilderPage() {
     if (!resume) return;
     setGenerating(true);
     try {
-      const res = await fetch("/api/cover-letters", {
+      await fetch(`/api/resumes/${resume.id}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeId: resume.id, content: "[AI-generated cover letter based on resume]", language: "en" }),
+        body: JSON.stringify({ sections: ["cover_letter"], instruction: "Generate a professional cover letter based on this resume." }),
       });
-      const data = await res.json();
-      if (data.coverLetter) setCoverLetter(data.coverLetter.content);
     } catch (e) {
       console.error("Generate cover letter failed", e);
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleSaveOutreach = async () => {
+    if (!resume || !outreachMsg.trim()) return;
+    setOutreachSaving(true);
+    try {
+      await fetch("/api/outreach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resumeId: resume.id, content: outreachMsg }),
+      });
+      showToast("Outreach message saved", "success");
+    } catch (e) {
+      console.error("Save outreach failed", e);
+      showToast("Failed to save outreach message", "error");
+    } finally {
+      setOutreachSaving(false);
     }
   };
 
@@ -343,6 +468,13 @@ export default function BuilderPage() {
   return (
     <div className="min-h-screen bg-canvas text-ink font-sans">
       <NavBar />
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 px-4 py-2 text-sm font-mono border-2 border-ink shadow-[3px_3px_0_rgba(0,0,0,0.25)] transition-all ${
+          toast.type === "success" ? "bg-green-100 text-green-900" : "bg-red-100 text-red-900"
+        }`}>
+          {toast.message}
+        </div>
+      )}
       <div className="pt-16">
         <div className="border-b-2 border-ink bg-canvas-alt px-4 md:px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
@@ -444,14 +576,44 @@ export default function BuilderPage() {
                     </div>
                     {isExpanded && (
                       <div className="border-t-2 border-ink p-2 space-y-1">
-                        {section.type === "personal_info" && (
-                          <div className="text-xs text-ink-soft italic font-mono p-2">Name, email, phone, location, links</div>
-                        )}
+                        {section.type === "personal_info" && (() => {
+                          const piEntry = section.entries[0];
+                          const parsed: Record<string, string> = (() => {
+                            if (!piEntry?.content) return {};
+                            try { return JSON.parse(piEntry.content); } catch { return {}; }
+                          })();
+                          const setPiField = (field: string, value: string) => {
+                            if (piEntry) {
+                              const current = (() => { try { return JSON.parse(piEntry.content || "{}"); } catch { return {}; } })();
+                              current[field] = value;
+                              updateEntry(section.id, piEntry.id, { content: JSON.stringify(current) });
+                            } else {
+                              const newEntry: Entry = { id: crypto.randomUUID(), order: 0, type: "personal_info", content: JSON.stringify({ [field]: value }), bullets: [] };
+                              setResume((prev) => {
+                                if (!prev) return prev;
+                                const sections = prev.sections.map((s) => {
+                                  if (s.id !== section.id) return s;
+                                  return { ...s, entries: [newEntry] };
+                                });
+                                return { ...prev, sections };
+                              });
+                              markDirty();
+                            }
+                          };
+                          return (
+                            <div className="space-y-1.5 font-mono">
+                              {["name", "email", "phone", "location", "links"].map((field) => (
+                                <input key={field} value={parsed[field] || ""} onChange={(e) => setPiField(field, e.target.value)}
+                                  className="w-full bg-canvas border border-ink px-2 py-1 text-ink outline-none text-[11px]" placeholder={field.charAt(0).toUpperCase() + field.slice(1)} />
+                              ))}
+                            </div>
+                          );
+                        })()}
                         {section.type === "summary" && (
                           <textarea
                             value={section.entries[0]?.content || ""}
                             onChange={(e) => {
-                              const entry = section.entries[0] || { id: "summary-entry", order: 0, type: "summary", content: "", bullets: [] };
+                              const entry = section.entries[0] || { id: crypto.randomUUID(), order: 0, type: "summary", content: "", bullets: [] };
                               updateEntry(section.id, entry.id, { content: e.target.value });
                             }}
                             className="w-full text-xs font-mono bg-canvas border-2 border-ink p-2 text-ink outline-none resize-none h-20"
@@ -554,7 +716,7 @@ export default function BuilderPage() {
                         {canReorder && (
                           <button onClick={() => {
                             const newEntry: Entry = {
-                              id: `new-${Date.now()}`,
+                              id: crypto.randomUUID(),
                               order: section.entries.length,
                               type: section.type,
                               title: "",
@@ -585,7 +747,7 @@ export default function BuilderPage() {
                         {section.type === "additional" && (
                           <button onClick={() => {
                             const newEntry: Entry = {
-                              id: `new-${Date.now()}`,
+                              id: crypto.randomUUID(),
                               order: section.entries.length,
                               type: "additional",
                               content: "",
@@ -617,14 +779,13 @@ export default function BuilderPage() {
           <div className="flex-1 flex flex-col">
             <div className="flex border-b-2 border-ink bg-canvas-alt">
               {(["resume", "cover", "outreach"] as const).map((tab) => {
-                const disabled = tab !== "resume";
                 return (
-                  <button key={tab} onClick={() => !disabled && setActiveTab(tab)}
+                  <button key={tab} onClick={() => setActiveTab(tab)}
                     className={`flex items-center gap-2 px-5 py-2.5 text-sm font-mono uppercase tracking-wider border-r-2 border-ink transition-all ${
                       activeTab === tab
                         ? "bg-canvas text-ink shadow-[inset_0_-2px_0_0_rgba(0,0,0,1)]"
-                        : "text-ink-soft"
-                    } ${disabled ? "opacity-40 cursor-not-allowed" : "hover:text-ink"}`}
+                        : "text-ink-soft hover:text-ink"
+                    }`}
                   >
                     {tab === "resume" && <FileText size={14} />}
                     {tab === "cover" && <MessageSquare size={14} />}
@@ -637,7 +798,9 @@ export default function BuilderPage() {
 
             <div className="flex-1 overflow-y-auto bg-canvas p-6">
               {activeTab === "resume" && (
-                <PreviewSection resume={resume} template={template} />
+                <div id="preview-content">
+                  <PreviewSection resume={resume} template={template} />
+                </div>
               )}
               {activeTab === "cover" && (
                 <div className="max-w-2xl mx-auto space-y-4">
@@ -670,6 +833,12 @@ export default function BuilderPage() {
                     placeholder="Write your outreach message..."
                   />
                   <div className="flex gap-2">
+                    <button onClick={handleSaveOutreach} disabled={outreachSaving || !outreachMsg.trim()}
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-mono border-2 border-ink bg-canvas text-ink shadow-[3px_3px_0_rgba(0,0,0,0.25)] hover:shadow-[4px_4px_0_rgba(0,0,0,0.25)] hover:-translate-x-[1px] hover:-translate-y-[1px] transition-all disabled:opacity-40"
+                    >
+                      {outreachSaving ? <Loader2 size={14} className="animate-spin" /> : <SaveCheck size={14} />}
+                      Save
+                    </button>
                     <button onClick={handleCopyOutreach}
                       className="flex items-center gap-2 px-4 py-2 text-sm font-mono border-2 border-ink bg-canvas text-ink shadow-[3px_3px_0_rgba(0,0,0,0.25)] hover:shadow-[4px_4px_0_rgba(0,0,0,0.25)] hover:-translate-x-[1px] hover:-translate-y-[1px] transition-all"
                     >
@@ -733,100 +902,27 @@ export default function BuilderPage() {
 }
 
 function PreviewSection({ resume, template }: { resume: ResumeData; template: typeof TEMPLATES[0] }) {
-  const accent = resume.accentColor;
-  const isTwoCol = resume.templateId.includes("2col");
+  const piSection = resume.sections.find(s => s.type === "personal_info");
+  const piEntry = piSection?.entries?.[0];
+  const piData: Record<string, string> = (() => {
+    if (!piEntry?.content) return {};
+    try { return JSON.parse(piEntry.content); } catch { return {}; }
+  })();
+  const displayName = piData.name || "Your Name";
+  const contactParts = [piData.email, piData.phone, piData.location, piData.links].filter(Boolean);
+  const contactLine = contactParts.length > 0 ? contactParts.join(" • ") : "your@email.com • (555) 000-0000";
 
-  return (
-    <div className="max-w-3xl mx-auto bg-canvas-alt border-2 border-ink shadow-[6px_6px_0_rgba(0,0,0,0.25)]">
-      <div className="p-6">
-        <div className="text-center mb-6">
-          <h2 className="text-xl font-display mb-0.5" style={{ color: accent }}>Alex Rivera</h2>
-          <p className="text-xs font-mono text-ink-soft">alex@example.com &bull; (555) 123-4567 &bull; linkedin.com/in/alex</p>
-        </div>
+  const props = { resume, displayName, contactLine, template };
 
-        <div className={isTwoCol ? "grid grid-cols-[1fr_2fr] gap-6" : "space-y-5"}>
-          {resume.sections.filter((s) => s.visible).map((section, si) => {
-            const label = section.name || SECTION_LABELS[section.type] || section.type;
-            const showHeader = section.type !== "personal_info";
-
-            return (
-              <div key={section.id} className={isTwoCol && si % 2 === 0 ? "col-start-1" : isTwoCol ? "col-start-2" : ""}>
-                {showHeader && (
-                  <div className={`flex items-center gap-2 mb-1.5 ${resume.templateId === "latex" ? "border-b border-ink/30 pb-0.5" : ""}`}>
-                    {resume.templateId !== "vivid" && (
-                      <div className="w-4 h-0.5" style={{ backgroundColor: accent }} />
-                    )}
-                    <h3 className={`text-xs font-bold uppercase tracking-widest ${
-                      resume.templateId === "vivid" ? `text-white px-2 py-0.5` : "text-ink"
-                    }`} style={resume.templateId === "vivid" ? { backgroundColor: accent } : {}}>
-                      {label}
-                    </h3>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  {section.type === "summary" && section.entries[0]?.content && (
-                    <p className="text-xs leading-relaxed text-ink">{section.entries[0].content}</p>
-                  )}
-                  {section.type === "experience" && section.entries.map((entry) => (
-                    <div key={entry.id} className="text-xs">
-                      <div className="flex justify-between items-baseline">
-                        <span className="font-semibold">{entry.title}</span>
-                        <span className="text-ink-soft">{entry.startDate} – {entry.current ? "Present" : entry.endDate}</span>
-                      </div>
-                      {entry.company && <p className="text-ink-soft">{entry.company}{entry.location ? `, ${entry.location}` : ""}</p>}
-                      {entry.bullets.filter(Boolean).length > 0 && (
-                        <ul className="mt-0.5 list-disc list-inside space-y-0.5">
-                          {entry.bullets.filter(Boolean).map((b, bi) => <li key={bi} className="text-ink-soft">{b}</li>)}
-                        </ul>
-                      )}
-                    </div>
-                  ))}
-                  {section.type === "education" && section.entries.map((entry) => (
-                    <div key={entry.id} className="text-xs">
-                      <div className="flex justify-between items-baseline">
-                        <span className="font-semibold">{entry.degree}{entry.field ? ` in ${entry.field}` : ""}</span>
-                        <span className="text-ink-soft">{entry.startDate} – {entry.endDate}</span>
-                      </div>
-                      <p className="text-ink-soft">{entry.institution}{entry.gpa ? ` — GPA: ${entry.gpa}` : ""}</p>
-                    </div>
-                  ))}
-                  {section.type === "projects" && section.entries.map((entry) => (
-                    <div key={entry.id} className="text-xs">
-                      <div className="flex justify-between items-baseline">
-                        <span className="font-semibold">{entry.name}</span>
-                        {entry.url && <span className="text-ink-soft text-[10px]">{entry.url}</span>}
-                      </div>
-                      {entry.description && <p className="text-ink-soft">{entry.description}</p>}
-                      {entry.bullets.filter(Boolean).length > 0 && (
-                        <ul className="mt-0.5 list-disc list-inside space-y-0.5">
-                          {entry.bullets.filter(Boolean).map((b, bi) => <li key={bi} className="text-ink-soft">{b}</li>)}
-                        </ul>
-                      )}
-                    </div>
-                  ))}
-                  {section.type === "additional" && section.entries.map((entry) => (
-                    <div key={entry.id} className="text-xs">
-                      {entry.content && <p className="text-ink-soft">{entry.content}</p>}
-                      {entry.bullets.filter(Boolean).length > 0 && (
-                        <p className="text-ink-soft">{entry.bullets.filter(Boolean).join(" | ")}</p>
-                      )}
-                    </div>
-                  ))}
-                  {section.type === "personal_info" && (
-                    <p className="text-xs text-ink-soft">Name, contact, and links configured on this resume.</p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="mt-6 pt-4 border-t-2 border-ink flex items-center justify-between text-[10px] font-mono text-ink-soft">
-          <span>PRISM — {template.label}</span>
-          <span>{resume.pageSize}</span>
-        </div>
-      </div>
-    </div>
-  );
+  switch (resume.templateId) {
+    case "swiss-2col":
+    case "modern-2col":
+      return <Standard2Col {...props} />;
+    case "latex":
+      return <Latex {...props} />;
+    case "vivid":
+      return <Vivid {...props} />;
+    default:
+      return <Standard1Col {...props} />;
+  }
 }

@@ -4,6 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { syncUser } from "@/lib/sync-user";
 import { ERRORS } from "@/lib/errors";
 
+const WIZARD_STEP_TO_SECTION: Record<string, { type: string; name: string }> = {
+  "1": { type: "personal_info", name: "Personal Info" },
+  "2": { type: "summary", name: "Summary" },
+  "3": { type: "experience", name: "Experience" },
+  "4": { type: "education", name: "Education" },
+  "5": { type: "additional", name: "Skills" },
+  "6": { type: "projects", name: "Projects" },
+};
+
 export async function GET() {
   const supabase = await createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
@@ -41,13 +50,79 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     if (body.type === "master") {
-      const resume = await prisma.masterResume.create({
-        data: {
-          userId: user.id,
-          title: body.title || "Master Resume",
-          status: "ready",
-        },
+      const resume = await prisma.$transaction(async (tx) => {
+        const r = await tx.masterResume.create({
+          data: {
+            userId: user.id,
+            title: body.title || "Master Resume",
+            status: "ready",
+          },
+        });
+
+        if (body.answers && typeof body.answers === "object") {
+          let order = 0;
+          for (const [step, answer] of Object.entries(body.answers)) {
+            const mapping = WIZARD_STEP_TO_SECTION[step];
+            if (!mapping || !answer || !(answer as string).trim()) continue;
+
+            const section = await tx.resumeSection.create({
+              data: {
+                masterResumeId: r.id,
+                type: mapping.type,
+                order,
+                visible: true,
+                name: mapping.name,
+              },
+            });
+
+            const text = (answer as string).trim();
+
+            if (mapping.type === "personal_info") {
+              await tx.customEntry.create({
+                data: { sectionId: section.id, content: text, bullets: [], order: 0 },
+              });
+            } else if (mapping.type === "summary") {
+              await tx.customEntry.create({
+                data: { sectionId: section.id, content: text, bullets: [], order: 0 },
+              });
+            } else if (mapping.type === "experience") {
+              await tx.customEntry.create({
+                data: { sectionId: section.id, content: text, bullets: [], order: 0 },
+              });
+            } else if (mapping.type === "education") {
+              await tx.customEntry.create({
+                data: { sectionId: section.id, content: text, bullets: [], order: 0 },
+              });
+            } else if (mapping.type === "additional") {
+              await tx.customEntry.create({
+                data: {
+                  sectionId: section.id,
+                  content: "",
+                  bullets: text.split(",").map((s: string) => s.trim()).filter(Boolean),
+                  order: 0,
+                },
+              });
+            } else if (mapping.type === "projects") {
+              await tx.customEntry.create({
+                data: { sectionId: section.id, content: text, bullets: [], order: 0 },
+              });
+            }
+
+            order++;
+          }
+        }
+
+        return tx.masterResume.findUnique({
+          where: { id: r.id },
+          include: {
+            sections: {
+              include: { experienceEntries: true, educationEntries: true, projectEntries: true, customEntries: true },
+              orderBy: { order: "asc" },
+            },
+          },
+        });
       });
+
       return NextResponse.json(resume);
     }
 

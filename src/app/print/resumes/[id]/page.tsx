@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { formatDate } from "@/lib/formatDate";
 
 interface ExperienceEntry {
   id: string;
@@ -45,7 +46,7 @@ interface CustomEntry {
   order: number;
 }
 
-interface ResumeSection {
+export interface ResumeSection {
   id: string;
   type: string;
   order: number;
@@ -67,14 +68,33 @@ interface Resume {
   sections: ResumeSection[];
 }
 
-function formatDate(date: string | null) {
-  if (!date) return null;
-  const d = new Date(date);
-  return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-}
 
-function ResumeSectionView({ section }: { section: ResumeSection }) {
+export function ResumeSectionView({ section }: { section: ResumeSection }) {
   if (!section.visible) return null;
+
+  if (section.type === "personal_info" && section.customEntries.length > 0) {
+    const entry = section.customEntries[0];
+    let piData: Record<string, string> = {};
+    try { piData = JSON.parse(entry.content); } catch {}
+    const parts = [piData.email, piData.phone, piData.location, piData.links].filter(Boolean);
+    return (
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-display font-bold tracking-tight">{piData.name || "Your Name"}</h1>
+        {parts.length > 0 && <p className="text-sm text-gray-600 mt-1">{parts.join(" • ")}</p>}
+      </div>
+    );
+  }
+
+  if (section.type === "summary" && section.customEntries.length > 0) {
+    return (
+      <div className="mb-6">
+        <h2 className="text-base font-display font-bold border-b border-black pb-1 mb-3 uppercase tracking-tight">
+          {section.name || "Summary"}
+        </h2>
+        <p className="text-sm leading-relaxed">{section.customEntries[0].content}</p>
+      </div>
+    );
+  }
 
   if (section.type === "experience" && section.experienceEntries.length > 0) {
     return (
@@ -271,14 +291,14 @@ export default function PrintResumePage() {
           <span className="print-watermark">PRISM</span>
         </div>
 
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-display font-bold tracking-tight">
-            {resume.title}
-          </h1>
-        </div>
-
         {visibleSections.length === 0 && (
           <p className="text-sm text-gray-500 text-center py-8">No visible sections</p>
+        )}
+
+        {visibleSections.some((s) => s.type === "personal_info" && s.customEntries.length > 0) ? null : (
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-display font-bold tracking-tight">{resume.title}</h1>
+          </div>
         )}
 
         {visibleSections

@@ -411,13 +411,23 @@ export default function BuilderPage() {
     if (!resume) return;
     setGenerating(true);
     try {
-      await fetch(`/api/resumes/${resume.id}/generate`, {
+      const res = await fetch(`/api/resumes/${resume.id}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sections: ["cover_letter"], instruction: "Generate a professional cover letter based on this resume." }),
       });
-    } catch (e) {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to generate cover letter");
+      }
+      const data = await res.json();
+      if (data.coverLetter) {
+        setCoverLetter(data.coverLetter);
+        showToast("Cover letter generated", "success");
+      }
+    } catch (e: any) {
       console.error("Generate cover letter failed", e);
+      showToast(e.message || "Failed to generate cover letter", "error");
     } finally {
       setGenerating(false);
     }

@@ -14,6 +14,11 @@ export async function GET(request: Request) {
 
   if (!resumeId) return NextResponse.json({ error: "resumeId required" }, { status: 400 });
 
+  const resume = await prisma.masterResume.findFirst({
+    where: { id: resumeId, userId: user.id },
+  });
+  if (!resume) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   const messages = await prisma.outreachMessage.findMany({
     where: { resumeId },
     orderBy: { createdAt: "desc" },
@@ -34,6 +39,11 @@ export async function POST(request: Request) {
   if (!resumeId || !content) {
     return NextResponse.json({ error: "resumeId and content required" }, { status: 400 });
   }
+
+  const resume = await prisma.masterResume.findFirst({
+    where: { id: resumeId, userId: user.id },
+  });
+  if (!resume) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const message = await prisma.outreachMessage.create({
     data: { resumeId, content, language: language || "en", type: type || "linkedin" },

@@ -16,6 +16,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "resumeId and content required" }, { status: 400 });
   }
 
+  const resume = await prisma.masterResume.findFirst({
+    where: { id: resumeId, userId: user.id },
+  });
+  if (!resume) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   const coverLetter = await prisma.coverLetter.create({
     data: { resumeId, content, language: language || "en" },
   });
@@ -33,6 +38,11 @@ export async function GET(request: Request) {
   const resumeId = searchParams.get("resumeId");
 
   if (!resumeId) return NextResponse.json({ error: "resumeId required" }, { status: 400 });
+
+  const resume = await prisma.masterResume.findFirst({
+    where: { id: resumeId, userId: user.id },
+  });
+  if (!resume) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const coverLetters = await prisma.coverLetter.findMany({
     where: { resumeId },

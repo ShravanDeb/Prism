@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Sparkles, Edit, Download, Trash2, CheckCircle, Loader2, AlertCircle, X, ChevronLeft } from "lucide-react";
 import NavBar from "@/components/NavBar";
+import { downloadPdf } from "@/lib/download-pdf";
 
 interface ExperienceEntry {
   id: string;
@@ -326,8 +327,13 @@ export default function ResumeViewerPage() {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handleDownload = async () => {
+    if (!printRef.current || !resume) return;
+    try {
+      await downloadPdf(printRef.current, `${resume.title || "resume"}.pdf`, resume.pageSize);
+    } catch (e) {
+      console.error("PDF download failed", e);
+    }
   };
 
   if (loading) {
@@ -440,7 +446,7 @@ export default function ResumeViewerPage() {
               >
                 <Edit size={15} /> Edit
               </button>
-              <button onClick={handlePrint}
+              <button onClick={handleDownload}
                 className="flex items-center gap-2 px-4 py-2.5 text-sm font-mono border-2 border-ink bg-canvas text-ink shadow-[3px_3px_0_rgba(0,0,0,0.25)] hover:shadow-[4px_4px_0_rgba(0,0,0,0.25)] hover:-translate-x-[1px] hover:-translate-y-[1px] transition-all"
               >
                 <Download size={15} /> Download

@@ -2,10 +2,9 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Sparkles, SaveCheck, RotateCcw, Download, ChevronDown, ChevronRight, EyeOff, Eye, Plus, X, Loader2, CopyCheck, FileText, MessageSquare, Check, ArrowUp, ArrowDown, SendHorizontal } from "lucide-react";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 import NavBar from "@/components/NavBar";
 import { createClient } from "@/lib/supabase-client";
+import { downloadPdf } from "@/lib/download-pdf";
 import type { Entry, ResumeSection, ResumeData } from "./types";
 import Standard1Col from "./templates/Standard1Col";
 import Standard2Col from "./templates/Standard2Col";
@@ -340,18 +339,7 @@ export default function BuilderPage() {
     const previewEl = document.getElementById("preview-content");
     if (!previewEl) return;
     try {
-      const canvas = await html2canvas(previewEl, { scale: 2, backgroundColor: "#ffffff" });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({ format: resume?.pageSize === "Letter" ? "letter" : "a4", unit: "px" });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const ratio = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
-      const scaledW = canvas.width * ratio;
-      const scaledH = canvas.height * ratio;
-      const offsetX = (pageWidth - scaledW) / 2;
-      const offsetY = (pageHeight - scaledH) / 2;
-      pdf.addImage(imgData, "PNG", offsetX, offsetY, scaledW, scaledH);
-      pdf.save(`${resume?.title || "resume"}.pdf`);
+      await downloadPdf(previewEl, `${resume?.title || "resume"}.pdf`, resume?.pageSize);
     } catch (e) {
       console.error("PDF generation failed", e);
       showToast("PDF download failed", "error");

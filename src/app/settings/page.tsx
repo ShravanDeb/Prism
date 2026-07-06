@@ -424,19 +424,6 @@ export default function SettingsPage() {
                           }`}
                         />
                   </div>
-                  <div className="border-t border-[#dc2626]/30" />
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-mono font-bold uppercase tracking-wider">Delete Account</p>
-                      <p className="text-xs text-ink-soft font-mono mt-1">Permanently deletes your account and all associated data. This is the nuclear option.</p>
-                    </div>
-                    <button
-                      onClick={() => setConfirmAction("delete-account")}
-                      className="flex-shrink-0 px-5 py-3 text-sm font-mono uppercase tracking-wider border-2 border-[#dc2626] bg-[#dc2626] text-white shadow-[3px_3px_0_rgba(220,38,38,0.25)] hover:shadow-[4px_4px_0_rgba(220,38,38,0.25)] hover:-translate-x-[1px] hover:-translate-y-[1px] transition-all"
-                    >
-                      Delete Account
-                    </button>
-                  </div>
                       <p className="text-sm font-mono text-ink-soft mb-1 uppercase tracking-wider">{card.label}</p>
                       <p className="text-xl font-display">{card.value}</p>
                     </div>
@@ -725,6 +712,19 @@ export default function SettingsPage() {
                       className="flex-shrink-0 px-5 py-3 text-sm font-mono uppercase tracking-wider border-2 border-[#dc2626] bg-[#dc2626] text-white shadow-[3px_3px_0_rgba(220,38,38,0.25)] hover:shadow-[4px_4px_0_rgba(220,38,38,0.25)] hover:-translate-x-[1px] hover:-translate-y-[1px] transition-all"
                     >
                       Reset DB
+                    </button>
+                  </div>
+                  <div className="border-t border-[#dc2626]/30" />
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-mono font-bold uppercase tracking-wider">Delete Account</p>
+                      <p className="text-xs text-ink-soft font-mono mt-1">Permanently deletes your account and all associated data. This is the nuclear option.</p>
+                    </div>
+                    <button
+                      onClick={() => setConfirmAction("delete-account")}
+                      className="flex-shrink-0 px-5 py-3 text-sm font-mono uppercase tracking-wider border-2 border-[#dc2626] bg-[#dc2626] text-white shadow-[3px_3px_0_rgba(220,38,38,0.25)] hover:shadow-[4px_4px_0_rgba(220,38,38,0.25)] hover:-translate-x-[1px] hover:-translate-y-[1px] transition-all"
+                    >
+                      Delete Account
                     </button>
                   </div>
                 </div>

@@ -66,8 +66,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const wantsCoverLetter = selectedSections.includes("cover_letter");
 
   return NextResponse.json({
-    resume: wantsCoverLetter ? undefined : resume,
-    ...(wantsCoverLetter ? { coverLetter: generateCoverLetter(resume) } : { resume }),
+    resume,
+    ...(wantsCoverLetter ? { coverLetter: generateCoverLetter(resume) } : {}),
     message: wantsCoverLetter
       ? "Cover letter generated from your resume data. Edit as needed."
       : instruction

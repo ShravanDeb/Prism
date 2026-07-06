@@ -34,12 +34,17 @@ const SECTION_LABELS: Record<string, string> = {
   additional: "Additional",
 };
 
+interface BuilderUser {
+  id: string;
+  email?: string;
+}
+
 export default function BuilderPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
   const supabase = createClient();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<BuilderUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resume, setResume] = useState<ResumeData | null>(null);
@@ -131,6 +136,7 @@ export default function BuilderPage() {
       setDirty(false);
     } catch (e) {
       console.error("Failed to fetch resume", e);
+      showToast("Failed to load resume", "error");
       router.push("/dashboard");
     } finally {
       setLoading(false);
@@ -348,6 +354,7 @@ export default function BuilderPage() {
       pdf.save(`${resume?.title || "resume"}.pdf`);
     } catch (e) {
       console.error("PDF generation failed", e);
+      showToast("PDF download failed", "error");
     }
   };
 
@@ -384,6 +391,7 @@ export default function BuilderPage() {
       setAiModalOpen(false);
     } catch (e) {
       console.error("AI regenerate failed", e);
+      showToast("AI regeneration failed", "error");
     } finally {
       setGenerating(false);
     }
@@ -409,6 +417,7 @@ export default function BuilderPage() {
 
   const handleGenerateCover = async () => {
     if (!resume) return;
+    if (coverLetter.trim() && !window.confirm("Replace your current cover letter with a generated template?")) return;
     setGenerating(true);
     try {
       const res = await fetch(`/api/resumes/${resume.id}/generate`, {
@@ -826,6 +835,7 @@ export default function BuilderPage() {
                       {generating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                       AI Generate
                     </button>
+                    <p className="text-[10px] font-mono text-ink-soft/60 -mt-1">Uses a basic template (LLM integration TBD)</p>
                     <button onClick={handleSaveCover} disabled={coverSaving || !coverLetter.trim()}
                       className="flex items-center gap-2 px-4 py-2 text-sm font-mono border-2 border-ink bg-canvas text-ink shadow-[3px_3px_0_rgba(0,0,0,0.25)] hover:shadow-[4px_4px_0_rgba(0,0,0,0.25)] hover:-translate-x-[1px] hover:-translate-y-[1px] transition-all disabled:opacity-40"
                     >

@@ -294,6 +294,23 @@ export default function SettingsPage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    setConfirmAction(null);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete-account" }),
+      });
+      if (res.ok) {
+        await supabase.auth.signOut();
+        router.push("/login");
+      }
+    } catch {
+      setError("Failed to delete account. It's stubborn.");
+    }
+  };
+
   const statusCards: StatusCard[] = health ? [
     {
       label: "LLM Health",
@@ -406,7 +423,20 @@ export default function SettingsPage() {
                             "bg-[#dc2626]"
                           }`}
                         />
-                      </div>
+                  </div>
+                  <div className="border-t border-[#dc2626]/30" />
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-mono font-bold uppercase tracking-wider">Delete Account</p>
+                      <p className="text-xs text-ink-soft font-mono mt-1">Permanently deletes your account and all associated data. This is the nuclear option.</p>
+                    </div>
+                    <button
+                      onClick={() => setConfirmAction("delete-account")}
+                      className="flex-shrink-0 px-5 py-3 text-sm font-mono uppercase tracking-wider border-2 border-[#dc2626] bg-[#dc2626] text-white shadow-[3px_3px_0_rgba(220,38,38,0.25)] hover:shadow-[4px_4px_0_rgba(220,38,38,0.25)] hover:-translate-x-[1px] hover:-translate-y-[1px] transition-all"
+                    >
+                      Delete Account
+                    </button>
+                  </div>
                       <p className="text-sm font-mono text-ink-soft mb-1 uppercase tracking-wider">{card.label}</p>
                       <p className="text-xl font-display">{card.value}</p>
                     </div>
@@ -720,6 +750,17 @@ export default function SettingsPage() {
         message="This action permanently deletes all your resumes, job descriptions, tracker cards, cover letters, and outreach messages. Your account will remain, but everything inside it will be gone. There is no undo. Make sure you've exported anything you want to keep."
         confirmLabel="Yes, Reset Everything"
         onConfirm={handleResetDb}
+        onCancel={() => setConfirmAction(null)}
+        doubleConfirm
+        destructive
+      />
+
+      <ConfirmDialog
+        open={confirmAction === "delete-account"}
+        title="Delete Account"
+        message="This action permanently deletes your account and all associated data — resumes, job descriptions, tracker cards, cover letters, outreach messages, settings, and everything else. You will be signed out and cannot recover anything. There is absolutely no undo."
+        confirmLabel="Yes, Delete My Account"
+        onConfirm={handleDeleteAccount}
         onCancel={() => setConfirmAction(null)}
         doubleConfirm
         destructive

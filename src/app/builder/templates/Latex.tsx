@@ -24,14 +24,14 @@ export default function Latex({
           <p className="text-xs font-mono text-ink-soft">{contactLine}</p>
         </div>
         <div className="space-y-5">
-          {resume.sections
-            .filter((s) => s.visible && s.type !== "personal_info")
-            .map((section) => (
-              <div key={section.id}>
+          {resume.sections.filter((s) => s.visible).map((section) => (
+            <div key={section.id}>
+              {section.type !== "personal_info" && (
                 <SectionHeader section={section} accent={accent} templateId="latex" />
-                <SectionEntries section={section} />
-              </div>
-            ))}
+              )}
+              <SectionEntries section={section} />
+            </div>
+          ))}
         </div>
         <div className="mt-6 pt-4 border-t-2 border-ink flex items-center justify-between text-[10px] font-mono text-ink-soft">
           <span>PRISM — {template.label}</span>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
+import { createAdminSupabase } from "@/lib/supabase-admin";
 import { prisma } from "@/lib/prisma";
 import { syncUser } from "@/lib/sync-user";
 import { encrypt, decrypt } from "@/lib/encryption";
@@ -112,6 +113,17 @@ export async function POST(request: Request) {
     await prisma.enrichmentSession.deleteMany({ where: { resume: { userId: user.id } } });
     await prisma.tailoredResume.deleteMany({ where: { userId: user.id } });
     await prisma.masterResume.deleteMany({ where: { userId: user.id } });
+    return NextResponse.json({ success: true });
+  }
+
+  if (body.action === "delete-account") {
+    await prisma.user.delete({ where: { id: user.id } });
+    try {
+      const admin = await createAdminSupabase();
+      await admin.auth.admin.deleteUser(user.id);
+    } catch {
+      // Service role key may not be configured — Prisma user is already deleted
+    }
     return NextResponse.json({ success: true });
   }
 

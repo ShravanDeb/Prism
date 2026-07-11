@@ -267,6 +267,12 @@ export default function ResumeViewerPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [enrichOpen, setEnrichOpen] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const fetchResume = useCallback(async () => {
     setLoading(true);
@@ -331,8 +337,10 @@ export default function ResumeViewerPage() {
     if (!printRef.current || !resume) return;
     try {
       await downloadPdf(printRef.current, `${resume.title || "resume"}.pdf`, resume.pageSize);
+      showToast("PDF downloaded", "success");
     } catch (e) {
       console.error("PDF download failed", e);
+      showToast("PDF download failed", "error");
     }
   };
 
@@ -550,6 +558,13 @@ export default function ResumeViewerPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-[60] px-5 py-3 text-sm font-mono border-2 border-ink shadow-[4px_4px_0_rgba(0,0,0,0.25)] transition-all ${
+          toast.type === "success" ? "bg-[#059669] text-white" : "bg-[#dc2626] text-white"
+        }`}>
+          {toast.message}
         </div>
       )}
     </div>

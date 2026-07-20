@@ -1,15 +1,14 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, FileText, Settings, Columns3, LogOut, Menu, X, Sun, Moon } from "lucide-react";
+import { LayoutDashboard, Settings, LogOut, Menu, X, Sun, Moon } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import { LogoIcon } from "@/components/LogoIcon";
+import { createClient } from "@/lib/supabase-client";
 import { useState } from "react";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Resumes", href: "/resumes", icon: FileText },
-  { label: "Tracker", href: "/tracker", icon: Columns3 },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -19,7 +18,9 @@ export default function NavBar() {
   const { theme, toggle } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
     router.push("/");
   };
 
@@ -28,7 +29,7 @@ export default function NavBar() {
       <nav className="fixed top-0 left-0 right-0 z-40 border-b-2 border-ink bg-canvas-alt shadow-[0_4px_0_0_rgba(0,0,0,0.25)]">
         <div className="max-w-7xl mx-auto px-4 md:px-6">
           <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-2 group">
+            <Link href="/dashboard" className="flex items-center gap-2 group">
               <div className="bg-canvas-alt text-ink px-3 py-2 border-2 border-ink shadow-[3px_3px_0_rgba(0,0,0,0.25)] group-hover:shadow-[4px_4px_0_rgba(0,0,0,0.25)] transition-all flex items-center gap-2">
                 <LogoIcon size={20} />
                 <span className="text-sm uppercase font-label font-semibold tracking-[0.08em] hidden md:block">PRISM</span>

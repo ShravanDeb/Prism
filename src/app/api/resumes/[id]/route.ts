@@ -3,184 +3,183 @@ import { createServerSupabase } from "@/lib/supabase-server";
 import { prisma } from "@/lib/prisma";
 import { syncUser } from "@/lib/sync-user";
 
-const ALLOWED_METADATA = ["templateId", "pageSize", "accentColor", "title"];
-
-const SECTION_ENTRY_TYPES = new Set(["experience", "education", "projects", "additional", "summary", "personal_info"]);
+const INCLUDE = {
+  sections: {
+    include: {
+      experienceEntries: true,
+      educationEntries: true,
+      projectEntries: true,
+      skillCategories: true,
+      customSections: true,
+    },
+    orderBy: { order: "asc" as const },
+  },
+};
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  await syncUser(user);
+  try {
+    const { id } = await params;
+    const supabase = await createServerSupabase();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    await syncUser(user);
 
-  let resume = await prisma.masterResume.findFirst({
-    where: { id, userId: user.id },
-    include: {
-      sections: {
-        include: { experienceEntries: true, educationEntries: true, projectEntries: true, customEntries: true },
-        orderBy: { order: "asc" },
-      },
-    },
-  });
-
-  if (!resume) {
-    resume = await prisma.tailoredResume.findFirst({
+    const resume = await prisma.masterResume.findFirst({
       where: { id, userId: user.id },
-      include: {
-        sections: {
-          include: { experienceEntries: true, educationEntries: true, projectEntries: true, customEntries: true },
-          orderBy: { order: "asc" },
-        },
-      },
-    }) as any;
+      include: INCLUDE,
+    });
+
+    if (!resume) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ resume });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
   }
-
-  if (!resume) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-  return NextResponse.json({ resume });
 }
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  await syncUser(user);
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const supabase = await createServerSupabase();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    await syncUser(user);
 
-  const body = await request.json();
+    const masterResume = await prisma.masterResume.findFirst({ where: { id, userId: user.id } });
+    if (!masterResume) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  if (typeof body !== "object" || body === null) {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
+    const body = await request.json();
 
-  const masterResume = await prisma.masterResume.findFirst({ where: { id, userId: user.id } });
-  const isTailored = !masterResume;
-  const resumeModel = isTailored
-    ? await prisma.tailoredResume.findFirst({ where: { id, userId: user.id } })
-    : masterResume;
+    const updated = await prisma.$transaction(async (tx) => {
+      const metadata: Record<string, any> = {};
+      if (body.title !== undefined) metadata.title = body.title;
+      if (body.templateId !== undefined) metadata.templateId = body.templateId;
+      if (body.pageSize !== undefined) metadata.pageSize = body.pageSize;
+      if (body.accentColor !== undefined) metadata.accentColor = body.accentColor;
+      if (body.personalInfo !== undefined) metadata.personalInfo = body.personalInfo;
+      if (body.status !== undefined) metadata.status = body.status;
 
-  if (!resumeModel) return NextResponse.json({ error: "Not found" }, { status: 404 });
+      if (Object.keys(metadata).length > 0) {
+        await tx.masterResume.update({ where: { id }, data: metadata });
+      }
 
-  const allowedMetadata: Record<string, any> = {};
-  for (const field of ALLOWED_METADATA) {
-    if (body[field] !== undefined) allowedMetadata[field] = body[field];
-  }
+      if (body.sections && Array.isArray(body.sections)) {
+        await tx.resumeSection.deleteMany({ where: { masterResumeId: id } });
 
-  if (body.sections !== undefined && !Array.isArray(body.sections)) {
-    return NextResponse.json({ error: "sections must be an array" }, { status: 400 });
-  }
+        for (const section of body.sections) {
+          if (!section.type) continue;
 
-  const updated = await prisma.$transaction(async (tx) => {
-    const model = isTailored ? tx.tailoredResume : tx.masterResume;
-    const resume = model as any;
+          const newSection = await tx.resumeSection.create({
+            data: {
+              masterResumeId: id,
+              type: section.type,
+              order: typeof section.order === "number" ? section.order : 0,
+              visible: section.visible !== false,
+              name: section.name || "",
+            },
+          });
 
-    if (Object.keys(allowedMetadata).length > 0) {
-      await resume.update({ where: { id }, data: allowedMetadata });
-    }
-
-    if (body.sections) {
-      const sectionModel = tx.resumeSection;
-      await sectionModel.deleteMany({ where: { [isTailored ? "tailoredResumeId" : "masterResumeId"]: id } });
-
-      for (const section of body.sections) {
-        if (!section.type || !SECTION_ENTRY_TYPES.has(section.type)) continue;
-
-        const newSection = await sectionModel.create({
-          data: {
-            [isTailored ? "tailoredResumeId" : "masterResumeId"]: id,
-            type: section.type,
-            order: typeof section.order === "number" ? section.order : 0,
-            visible: section.visible !== false,
-            name: section.name || "",
-          },
-        });
-
-        const entries = Array.isArray(section.entries) ? section.entries : [];
-
-        for (const entry of entries) {
-          if (section.type === "experience") {
-            await tx.experienceEntry.create({
-              data: {
-                sectionId: newSection.id,
-                title: entry.title || "",
-                company: entry.company || "",
-                location: entry.location || null,
-                startDate: entry.startDate || null,
-                endDate: entry.endDate || null,
-                current: entry.current || false,
-                bullets: Array.isArray(entry.bullets) ? entry.bullets : [],
-                order: typeof entry.order === "number" ? entry.order : 0,
-              },
-            });
-          } else if (section.type === "education") {
-            await tx.educationEntry.create({
-              data: {
-                sectionId: newSection.id,
-                institution: entry.institution || "",
-                degree: entry.degree || "",
-                field: entry.field || null,
-                startDate: entry.startDate || null,
-                endDate: entry.endDate || null,
-                gpa: entry.gpa || null,
-                bullets: Array.isArray(entry.bullets) ? entry.bullets : [],
-                order: typeof entry.order === "number" ? entry.order : 0,
-              },
-            });
-          } else if (section.type === "projects") {
-            await tx.projectEntry.create({
-              data: {
-                sectionId: newSection.id,
-                name: entry.name || "",
-                description: entry.description || null,
-                url: entry.url || null,
-                startDate: entry.startDate || null,
-                endDate: entry.endDate || null,
-                bullets: Array.isArray(entry.bullets) ? entry.bullets : [],
-                order: typeof entry.order === "number" ? entry.order : 0,
-              },
-            });
-          } else {
-            await tx.customEntry.create({
-              data: {
-                sectionId: newSection.id,
-                content: entry.content || "",
-                bullets: Array.isArray(entry.bullets) ? entry.bullets : [],
-                order: typeof entry.order === "number" ? entry.order : 0,
-              },
-            });
+          if (section.type === "experience" && Array.isArray(section.entries)) {
+            for (let i = 0; i < section.entries.length; i++) {
+              const e = section.entries[i];
+              await tx.experienceEntry.create({
+                data: {
+                  sectionId: newSection.id,
+                  title: e.title || "",
+                  company: e.company || "",
+                  location: e.location || null,
+                  startDate: e.startDate || null,
+                  endDate: e.endDate || null,
+                  current: e.current || false,
+                  bullets: Array.isArray(e.bullets) ? e.bullets : [],
+                  order: i,
+                },
+              });
+            }
+          } else if (section.type === "education" && Array.isArray(section.entries)) {
+            for (let i = 0; i < section.entries.length; i++) {
+              const e = section.entries[i];
+              await tx.educationEntry.create({
+                data: {
+                  sectionId: newSection.id,
+                  institution: e.institution || "",
+                  degree: e.degree || "",
+                  field: e.field || null,
+                  startDate: e.startDate || null,
+                  endDate: e.endDate || null,
+                  gpa: e.gpa || null,
+                  bullets: Array.isArray(e.bullets) ? e.bullets : [],
+                  order: i,
+                },
+              });
+            }
+          } else if (section.type === "projects" && Array.isArray(section.entries)) {
+            for (let i = 0; i < section.entries.length; i++) {
+              const e = section.entries[i];
+              await tx.projectEntry.create({
+                data: {
+                  sectionId: newSection.id,
+                  name: e.name || "",
+                  description: e.description || null,
+                  urls: Array.isArray(e.urls) ? e.urls : (e.url ? [e.url] : []),
+                  startDate: e.startDate || null,
+                  endDate: e.endDate || null,
+                  bullets: Array.isArray(e.bullets) ? e.bullets : [],
+                  order: i,
+                },
+              });
+            }
+          } else if (section.type === "skills" && Array.isArray(section.entries)) {
+            for (let i = 0; i < section.entries.length; i++) {
+              const e = section.entries[i];
+              await tx.skillCategory.create({
+                data: {
+                  sectionId: newSection.id,
+                  category: e.category || "",
+                  items: Array.isArray(e.items) ? e.items : (typeof e.items === "string" ? e.items.split(",").map((s: string) => s.trim()).filter(Boolean) : []),
+                  order: i,
+                },
+              });
+            }
+          } else if (section.type === "custom" && Array.isArray(section.entries)) {
+            for (let i = 0; i < section.entries.length; i++) {
+              const e = section.entries[i];
+              await tx.customSection.create({
+                data: {
+                  sectionId: newSection.id,
+                  name: e.name || "",
+                  bullets: Array.isArray(e.bullets) ? e.bullets : [],
+                  order: i,
+                },
+              });
+            }
           }
         }
       }
-    }
 
-    const modelName = isTailored ? tx.tailoredResume : tx.masterResume;
-    return (modelName as any).findUnique({
-      where: { id },
-      include: {
-        sections: {
-          include: { experienceEntries: true, educationEntries: true, projectEntries: true, customEntries: true },
-          orderBy: { order: "asc" },
-        },
-      },
+      return tx.masterResume.findUnique({ where: { id }, include: INCLUDE });
     });
-  });
 
-  return NextResponse.json({ resume: updated });
+    return NextResponse.json({ resume: updated });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  return PUT(request, { params });
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  await syncUser(user);
-
   try {
+    const { id } = await params;
+    const supabase = await createServerSupabase();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    await syncUser(user);
+
     await prisma.masterResume.deleteMany({ where: { id, userId: user.id } });
-    await prisma.tailoredResume.deleteMany({ where: { id, userId: user.id } });
     return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
   }
 }

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode/big-pickle",
+  "small_model": "opencode/north-mini-code-free",
+  "provider": {
+    "opencode": {
+      "name": "OpenCode AI",
+      "api": "https://opencode.ai/zen/v1",
+      "npm": "@ai-sdk/openai-compatible",
+      "models": {
+        "big-pickle": { "name": "big-pickle", "cost": { "input": 0, "output": 0 }, "limit": { "context": 64000, "output": 4096 } },
+        "deepseek-v4-flash-free": { "name": "deepseek-v4-flash-free", "cost": { "input": 0, "output": 0 }, "limit": { "context": 64000, "output": 4096 } },
+        "mimo-v2.5-free": { "name": "mimo-v2.5-free", "cost": { "input": 0, "output": 0 }, "limit": { "context": 64000, "output": 4096 } },
+        "north-mini-code-free": { "name": "north-mini-code-free", "cost": { "input": 0, "output": 0 }, "limit": { "context": 64000, "output": 4096 } },
+        "nemotron-3-ultra-free": { "name": "nemotron-3-ultra-free", "cost": { "input": 0, "output": 0 }, "limit": { "context": 64000, "output": 4096 } }
+      }
+    }
+  },
+  "disabled_providers": ["openai", "anthropic", "gemini"],
+  "enabled_providers": ["opencode"]
+}

@@ -110,7 +110,7 @@ export async function POST(request: Request) {
     await prisma.jobDescription.deleteMany({ where: { userId: user.id } });
     await prisma.coverLetter.deleteMany({ where: { resume: { userId: user.id } } });
     await prisma.outreachMessage.deleteMany({ where: { resume: { userId: user.id } } });
-    await prisma.enrichmentSession.deleteMany({ where: { resume: { userId: user.id } } });
+    await prisma.aISuggestion.deleteMany({ where: { resume: { userId: user.id } } });
     await prisma.tailoredResume.deleteMany({ where: { userId: user.id } });
     await prisma.masterResume.deleteMany({ where: { userId: user.id } });
     return NextResponse.json({ success: true });

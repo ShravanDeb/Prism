@@ -24,10 +24,11 @@ model MasterResume {
   id               String   @id @default(cuid())
   userId           String
   title            String   @default("Master Resume")
-  templateId       String   @default("swiss-1col")
+  templateId       String   @default("classic")
   pageSize         String   @default("A4")
-  accentColor      String   @default("#7c3aed")
-  status           String   @default("pending")
+  accentColor      String   @default("#1a1a1a")
+  status           String   @default("draft")
+  personalInfo     Json?
   uploadedFileUrl  String?
   uploadedFileName String?
   createdAt        DateTime @default(now())
@@ -37,7 +38,7 @@ model MasterResume {
   sections  ResumeSection[]
   coverLetters  CoverLetter[]
   outreachMessages OutreachMessage[]
-  enrichmentSessions EnrichmentSession[]
+  aiSuggestions   AISuggestion[]
   tailoredResumes TailoredResume[]
 
   @@index([userId])
@@ -81,7 +82,8 @@ model ResumeSection {
   experienceEntries ExperienceEntry[]
   educationEntries  EducationEntry[]
   projectEntries    ProjectEntry[]
-  customEntries     CustomEntry[]
+  skillCategories   SkillCategory[]
+  customSections    CustomSection[]
 }
 
 model ExperienceEntry {
@@ -123,7 +125,7 @@ model ProjectEntry {
   sectionId   String
   name        String
   description String?
-  url         String?
+  urls        String[]
   startDate   String?
   endDate     String?
   bullets     String[]
@@ -134,16 +136,45 @@ model ProjectEntry {
   @@index([sectionId])
 }
 
-model CustomEntry {
+model SkillCategory {
   id        String   @id @default(cuid())
   sectionId String
-  content   String
+  category  String
+  items     String[]
+  order     Int      @default(0)
+
+  section ResumeSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+}
+
+model CustomSection {
+  id        String   @id @default(cuid())
+  sectionId String
+  name      String
   bullets   String[]
   order     Int      @default(0)
 
   section ResumeSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
   @@index([sectionId])
+}
+
+model AISuggestion {
+  id          String   @id @default(cuid())
+  resumeId    String
+  sectionType String
+  entryId     String?
+  field       String
+  original    String
+  suggested   String
+  reason      String
+  accepted    Boolean?
+  createdAt   DateTime @default(now())
+
+  resume MasterResume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@index([resumeId])
 }
 
 model JobDescription {
@@ -211,14 +242,13 @@ model OutreachMessage {
 model Settings {
   id                      String   @id @default(cuid())
   userId                  String   @unique
-  llmProvider             String   @default("openai")
-  model                   String   @default("gpt-4o")
+  llmProvider             String   @default("opencode")
+  model                   String   @default("big-pickle")
   apiBaseUrl              String?
   apiKeyEncrypted         String?
   reasoningEffort         String   @default("auto")
   uiLanguage              String   @default("en")
   contentLanguage         String   @default("en")
-  defaultImprovementStyle String   @default("nudge")
   coverLetterEnabled      Boolean  @default(true)
   outreachEnabled         Boolean  @default(true)
   customPrompts           Json?
@@ -226,18 +256,4 @@ model Settings {
   updatedAt               DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model EnrichmentSession {
-  id        String   @id @default(cuid())
-  resumeId  String
-  step      String   @default("analyzing")
-  questions Json?
-  results   Json?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  resume MasterResume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-
-  @@index([resumeId])
 }

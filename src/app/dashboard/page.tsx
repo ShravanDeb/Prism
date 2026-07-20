@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, FileText, Trash2, Download, Pencil, X, Loader2, Calendar } from "lucide-react";
 import NavBar from "@/components/NavBar";
+import TemplatePreview from "@/components/TemplatePreview";
 
 interface Resume {
   id: string;
@@ -13,12 +14,12 @@ interface Resume {
 }
 
 const templates = [
-  { id: "classic", name: "Classic", description: "Traditional single-column layout", color: "bg-ink/5" },
-  { id: "modern", name: "Modern", description: "Two-column with sidebar", color: "bg-[#7c3aed]/10" },
-  { id: "minimal", name: "Minimal", description: "Clean, minimal design", color: "bg-[#0284c7]/10" },
-  { id: "executive", name: "Executive", description: "Formal, executive style", color: "bg-[#0284c7]/10" },
-  { id: "creative", name: "Creative", description: "Colorful, creative design", color: "bg-[#7c3aed]/10" },
-  { id: "technical", name: "Technical", description: "Skills-focused layout", color: "bg-[#0284c7]/10" },
+  { id: "classic", name: "Classic", description: "Traditional single-column layout" },
+  { id: "modern", name: "Modern", description: "Two-column with sidebar" },
+  { id: "minimal", name: "Minimal", description: "Clean, minimal design" },
+  { id: "executive", name: "Executive", description: "Formal, executive style" },
+  { id: "creative", name: "Creative", description: "Colorful, creative design" },
+  { id: "technical", name: "Technical", description: "Skills-focused layout" },
 ];
 
 export default function DashboardPage() {
@@ -193,8 +194,8 @@ export default function DashboardPage() {
                   disabled={creating}
                   className="group border-2 border-ink bg-canvas p-4 flex flex-col items-center gap-3 shadow-[3px_3px_0_rgba(0,0,0,0.25)] hover:shadow-[5px_5px_0_rgba(0,0,0,0.25)] hover:-translate-x-[1px] hover:-translate-y-[1px] transition-all disabled:opacity-50"
                 >
-                  <div className={`w-full aspect-[3/4] border-2 border-ink/20 ${tmpl.color} flex items-center justify-center`}>
-                    <FileText size={24} className="text-ink-soft/40" />
+                  <div className="w-full overflow-hidden">
+                    <TemplatePreview templateId={tmpl.id} />
                   </div>
                   <div className="text-center">
                     <span className="block text-xs font-mono uppercase tracking-wider text-ink font-semibold">

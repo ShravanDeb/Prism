@@ -31,7 +31,7 @@ export async function complete(config: LLMConfig, opts: LLMCompletionOpts): Prom
   const { provider, model, apiKey, apiBaseUrl } = config;
   const { messages, temperature = 0.7, maxTokens = 4096 } = opts;
 
-  if (!apiKey && provider !== "ollama") {
+  if (!apiKey && provider !== "ollama" && provider !== "openai-compatible") {
     throw new Error(`API key required for provider: ${provider}`);
   }
 
@@ -42,12 +42,12 @@ export async function complete(config: LLMConfig, opts: LLMCompletionOpts): Prom
     case "deepseek":
     case "groq": {
       const baseUrl = apiBaseUrl || getDefaultBaseUrl(provider);
+      const isFreeEndpoint = baseUrl.includes("opencode.ai");
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (!isFreeEndpoint && apiKey && apiKey !== "free") headers.Authorization = `Bearer ${apiKey}`;
       const res = await fetch(`${baseUrl}/chat/completions`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
+        headers,
         body: JSON.stringify({
           model,
           messages,

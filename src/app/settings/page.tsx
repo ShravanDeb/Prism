@@ -13,6 +13,7 @@ type Language = "en" | "es" | "fr" | "de" | "ja" | "zh";
 type Effort = "auto" | "low" | "high";
 
 const PROVIDERS: { value: Provider; label: string }[] = [
+  { value: "openai-compatible", label: "OpenCode Free (Default)" },
   { value: "openai", label: "OpenAI" },
   { value: "anthropic", label: "Anthropic" },
   { value: "gemini", label: "Gemini" },
@@ -20,7 +21,14 @@ const PROVIDERS: { value: Provider; label: string }[] = [
   { value: "groq", label: "Groq" },
   { value: "ollama", label: "Ollama" },
   { value: "openrouter", label: "OpenRouter" },
-  { value: "openai-compatible", label: "OpenAI-compatible" },
+];
+
+const FREE_MODELS = [
+  { id: "big-pickle", name: "Big Pickle", desc: "Best all-around free model" },
+  { id: "mimo-v2.5-free", name: "MiMo V2.5 Free", desc: "Fast and capable" },
+  { id: "north-mini-code-free", name: "North Mini Code Free", desc: "Great for code tasks" },
+  { id: "nemotron-3-ultra-free", name: "Nemotron 3 Ultra Free", desc: "Strong reasoning" },
+  { id: "deepseek-v4-flash-free", name: "DeepSeek V4 Flash Free", desc: "Fast response times" },
 ];
 
 const STANDARD_PROVIDERS: Provider[] = ["openai", "anthropic", "gemini"];
@@ -441,9 +449,26 @@ export default function SettingsPage() {
           {/* Section 2: LLM Configuration */}
           <section className={`${sectionBg(1)} py-20 md:py-28 border-b-2 border-ink`}>
             <div className="max-w-4xl mx-auto px-4 md:px-6">
-              <h2 className="text-2xl font-display mb-8">LLM Configuration</h2>
+              <h2 className="text-2xl font-display mb-8">AI Configuration</h2>
+
+              {llmProvider === "openai-compatible" && (
+                <div className="max-w-xl p-5 border-2 border-[#059669] bg-[#059669]/5 shadow-[4px_4px_0_rgba(0,0,0,0.25)] mb-8">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle size={20} className="text-[#059669] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-mono font-bold text-[#059669] uppercase tracking-wider">Free AI Active — No API Key Required</p>
+                      <p className="text-xs text-ink-soft font-mono mt-1">
+                        Using OpenCode free models. AI analyze, cover letter, and outreach work out of the box.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <p className="text-sm text-ink-soft font-sans mb-8 max-w-2xl">
-                Tell the AI which brain to use. Choose wisely, or don't — we're not your manager.
+                {llmProvider === "openai-compatible"
+                  ? "Pick a free model below. No keys needed — just works."
+                  : "Have your own API key? Switch to a paid provider above."}
               </p>
               <div className="space-y-6 max-w-xl">
                 <div>
@@ -451,7 +476,13 @@ export default function SettingsPage() {
                   <div className="relative">
                     <select
                       value={llmProvider}
-                      onChange={(e) => setLlmProvider(e.target.value as Provider)}
+                      onChange={(e) => {
+                        setLlmProvider(e.target.value as Provider);
+                        if (e.target.value === "openai-compatible") {
+                          setApiBaseUrl("https://opencode.ai/zen/v1");
+                          setApiKey("");
+                        }
+                      }}
                       className="w-full appearance-none px-4 py-3 text-sm font-mono border-2 border-ink bg-canvas text-ink shadow-[3px_3px_0_rgba(0,0,0,0.25)] focus:shadow-[4px_4px_0_rgba(0,0,0,0.25)] focus:-translate-x-[1px] focus:-translate-y-[1px] transition-all outline-none"
                     >
                       {PROVIDERS.map((p) => (
@@ -466,61 +497,63 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-mono mb-2 uppercase tracking-wider">Model Name</label>
-                  <input
-                    type="text"
-                    value={model}
-                    onChange={(e) => setModel(e.target.value)}
-                    placeholder="gpt-4o"
-                    className="w-full px-4 py-3 text-sm font-mono border-2 border-ink bg-canvas text-ink placeholder:text-ink-soft/50 shadow-[3px_3px_0_rgba(0,0,0,0.25)] focus:shadow-[4px_4px_0_rgba(0,0,0,0.25)] focus:-translate-x-[1px] focus:-translate-y-[1px] transition-all outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-mono mb-2 uppercase tracking-wider">API Key</label>
-                  <input
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder={apiKeySaved ? "••••••••" : "sk-..."}
-                    className="w-full px-4 py-3 text-sm font-mono border-2 border-ink bg-canvas text-ink placeholder:text-ink-soft/50 shadow-[3px_3px_0_rgba(0,0,0,0.25)] focus:shadow-[4px_4px_0_rgba(0,0,0,0.25)] focus:-translate-x-[1px] focus:-translate-y-[1px] transition-all outline-none"
-                  />
-                  <p className="text-xs text-ink-soft font-mono mt-1">{apiKeySaved ? "Key is saved. Type a new one to replace it." : "No key saved. The AI is unemployed."}</p>
-                </div>
-
-                {!STANDARD_PROVIDERS.includes(llmProvider) && (
+                {llmProvider === "openai-compatible" ? (
                   <div>
-                    <label className="block text-sm font-mono mb-2 uppercase tracking-wider">API Base URL</label>
-                    <input
-                      type="text"
-                      value={apiBaseUrl}
-                      onChange={(e) => setApiBaseUrl(e.target.value)}
-                      placeholder={llmProvider === "ollama" ? "http://localhost:11434" : "https://api.example.com/v1"}
-                      className="w-full px-4 py-3 text-sm font-mono border-2 border-ink bg-canvas text-ink placeholder:text-ink-soft/50 shadow-[3px_3px_0_rgba(0,0,0,0.25)] focus:shadow-[4px_4px_0_rgba(0,0,0,0.25)] focus:-translate-x-[1px] focus:-translate-y-[1px] transition-all outline-none"
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-mono mb-2 uppercase tracking-wider">Reasoning Effort</label>
-                  <div className="relative">
-                    <select
-                      value={reasoningEffort}
-                      onChange={(e) => setReasoningEffort(e.target.value as Effort)}
-                      className="w-full appearance-none px-4 py-3 text-sm font-mono border-2 border-ink bg-canvas text-ink shadow-[3px_3px_0_rgba(0,0,0,0.25)] focus:shadow-[4px_4px_0_rgba(0,0,0,0.25)] focus:-translate-x-[1px] focus:-translate-y-[1px] transition-all outline-none"
-                    >
-                      {EFFORTS.map((e) => (
-                        <option key={e.value} value={e.value} className="bg-canvas text-ink">{e.label}</option>
+                    <label className="block text-sm font-mono mb-2 uppercase tracking-wider">Free Model</label>
+                    <div className="grid grid-cols-1 gap-2">
+                      {FREE_MODELS.map((m) => (
+                        <button
+                          key={m.id}
+                          onClick={() => setModel(m.id)}
+                          className={`w-full text-left px-4 py-3 border-2 transition-all shadow-[2px_2px_0_rgba(0,0,0,0.25)] hover:shadow-[3px_3px_0_rgba(0,0,0,0.25)] hover:-translate-x-[1px] hover:-translate-y-[1px] ${
+                            model === m.id
+                              ? "border-[#059669] bg-[#059669]/5"
+                              : "border-ink bg-canvas"
+                          }`}
+                        >
+                          <span className="text-sm font-mono font-bold block">{m.name}</span>
+                          <span className="text-[10px] font-mono text-ink-soft">{m.desc}</span>
+                        </button>
                       ))}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-ink-soft">
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                        <path d="M3 5L6 8L9 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-sm font-mono mb-2 uppercase tracking-wider">Model Name</label>
+                      <input
+                        type="text"
+                        value={model}
+                        onChange={(e) => setModel(e.target.value)}
+                        placeholder="gpt-4o"
+                        className="w-full px-4 py-3 text-sm font-mono border-2 border-ink bg-canvas text-ink placeholder:text-ink-soft/50 shadow-[3px_3px_0_rgba(0,0,0,0.25)] focus:shadow-[4px_4px_0_rgba(0,0,0,0.25)] focus:-translate-x-[1px] focus:-translate-y-[1px] transition-all outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-mono mb-2 uppercase tracking-wider">API Key</label>
+                      <input
+                        type="password"
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                        placeholder={apiKeySaved ? "••••••••" : "sk-..."}
+                        className="w-full px-4 py-3 text-sm font-mono border-2 border-ink bg-canvas text-ink placeholder:text-ink-soft/50 shadow-[3px_3px_0_rgba(0,0,0,0.25)] focus:shadow-[4px_4px_0_rgba(0,0,0,0.25)] focus:-translate-x-[1px] focus:-translate-y-[1px] transition-all outline-none"
+                      />
+                      <p className="text-xs text-ink-soft font-mono mt-1">{apiKeySaved ? "Key is saved. Type a new one to replace it." : "No key saved."}</p>
+                    </div>
+                    {!STANDARD_PROVIDERS.includes(llmProvider) && (
+                      <div>
+                        <label className="block text-sm font-mono mb-2 uppercase tracking-wider">API Base URL</label>
+                        <input
+                          type="text"
+                          value={apiBaseUrl}
+                          onChange={(e) => setApiBaseUrl(e.target.value)}
+                          placeholder={llmProvider === "ollama" ? "http://localhost:11434" : "https://api.example.com/v1"}
+                          className="w-full px-4 py-3 text-sm font-mono border-2 border-ink bg-canvas text-ink placeholder:text-ink-soft/50 shadow-[3px_3px_0_rgba(0,0,0,0.25)] focus:shadow-[4px_4px_0_rgba(0,0,0,0.25)] focus:-translate-x-[1px] focus:-translate-y-[1px] transition-all outline-none"
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
 
                 <div className="flex gap-3 pt-4">
                   <button
